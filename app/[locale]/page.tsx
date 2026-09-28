@@ -1,12 +1,13 @@
 'use client'
 
 import { ReactNode, useState, useEffect, Suspense } from 'react'
-import FloatingActivityAlerts from '@/components/FloatingActivityAlerts'
+import FloatingActivityAlerts from '@/components/home/FloatingActivityAlerts'
 import { homeActivityNotifications } from '@/lib/data/activityNotifications'
-import LoginModal from '@/components/LoginModal'
-import RegisterModal from '@/components/RegisterModal'
+import LoginModal from '@/components/home/LoginModal'
+import RegisterModal from '@/components/home/RegisterModal'
 import { useParams, useSearchParams } from 'next/navigation'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
+import HomeMarque from '@/components/home/HomeMarque'
 
 const Section = ({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) => (
   <section className={`py-16 md:py-24 ${className}`}>
@@ -27,7 +28,7 @@ function HomeContent() {
   const [showRegisterModal, setShowRegisterModal] = useState(false)
 
   const howItWorksSteps = [
-    { title: 'Register', desc: 'Create a account in seconds.' },
+    { title: 'Register', desc: 'Create a free account in seconds.' },
     { title: 'Complete Tasks', desc: 'Complete simple tasks to earn rewards.' },
     { title: 'Get Paid', desc: 'Withdraw earnings to Mobile Money.' },
   ]
@@ -64,16 +65,17 @@ function HomeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
+      <HomeMarque onClaim={() => openRegisterModal()} />
       <FloatingActivityAlerts items={homeActivityNotifications} />
 
       <header className="relative overflow-hidden py-28 text-center">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl md:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-emerald-400">
-            Welcome to Fast Earn
+            Welcome
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto mb-8">
-            Earn <span className="text-emerald-400 font-bold">$5 a day</span> by completing simple tasks.
+            Make money by completing simple tasks.
           </p>
           <div className="flex items-center justify-center gap-4">
             <button 
@@ -86,7 +88,7 @@ function HomeContent() {
               onClick={() => setShowLoginModal(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-colors"
             >
-              Sign in
+              Log in
             </button>
           </div>
         </div>

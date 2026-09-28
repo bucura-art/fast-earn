@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import Footer from '@/components/Footer'
+import Footer from '@/components/general/Footer'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 

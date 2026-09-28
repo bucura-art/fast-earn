@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 import UpgradeRequestClient from './UpgradeRequestClient'
 
 interface UpgradeRequestPageProps {

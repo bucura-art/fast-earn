@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import type { Metadata } from 'next'
-import AdminNav from '@/components/AdminNav'
+import AdminNav from '@/components/admin/AdminNav'
 
 export const metadata: Metadata = {
   title: 'Fast Earn - Admin Panel',

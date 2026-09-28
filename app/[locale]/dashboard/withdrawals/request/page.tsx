@@ -6,7 +6,7 @@ import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase-client'
 import WithdrawChatWidget from '@/components/chat/WithdrawChatWidget'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 
 interface WithdrawalRequestPageProps {
   params: Promise<{ locale: string }>

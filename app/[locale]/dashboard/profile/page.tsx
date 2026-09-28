@@ -8,7 +8,7 @@ import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser, updateUserProfile, logout } from '@/lib/auth'
 import supabase from '@/lib/supabaseClient'
 import { User } from '@/lib/types'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 
 interface ProfilePageProps {
   params: Promise<{ locale: string }>

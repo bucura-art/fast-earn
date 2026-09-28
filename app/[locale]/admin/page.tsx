@@ -7,7 +7,7 @@ import { getSystemStats, getFraudLogs } from '@/lib/admin'
 import { getReferralLeaderboard } from '@/lib/referral'
 import AdminLoading from '@/components/admin/AdminLoading'
 import { TrendingUp, Users, Briefcase, DollarSign, Activity, Trophy } from 'lucide-react'
-import ReferralLeaderboard from '@/components/ReferralLeaderboard'
+import ReferralLeaderboard from '@/components/dashboard/ReferralLeaderboard'
 import supabase from '@/lib/supabaseClient'
 
 interface AdminDashboardProps {

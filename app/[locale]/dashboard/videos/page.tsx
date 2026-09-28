@@ -12,8 +12,8 @@ import { Task, TaskCompletion } from '@/lib/types'
 import { Play, CheckCircle2, AlertCircle, X, Lock } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
 import { TIER_MULTIPLIERS } from '@/lib/tierUtils'
-import PageLoading from '@/components/PageLoading'
-import TaskVideoPlayer from '@/components/TaskVideoPlayer'
+import PageLoading from '@/components/general/PageLoading'
+import TaskVideoPlayer from '@/components/tasks/TaskVideoPlayer'
 
 interface VideosPageProps {
   params: Promise<{ locale: string }>

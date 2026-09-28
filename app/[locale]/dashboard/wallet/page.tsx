@@ -3,7 +3,7 @@
 import { use } from 'react'
 
 import { useState, useEffect } from 'react'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getBalance, getWalletTransactions } from '@/lib/reward'

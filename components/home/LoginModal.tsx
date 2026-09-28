@@ -3,23 +3,22 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { registerUser } from '@/lib/auth'
+import { loginUser, getCurrentUser } from '@/lib/auth'
+import { isUserAdmin } from '@/lib/admin'
 
-interface RegisterModalProps {
+interface LoginModalProps {
   locale: string
   isOpen: boolean
   onClose: () => void
-  refCode: string | null | undefined
 }
 
-export default function RegisterModal({ locale, isOpen, onClose, refCode }: RegisterModalProps) {
+export default function LoginModal({ locale, isOpen, onClose }: LoginModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
+    phone: '',
     password: '',
   })
 
@@ -31,47 +30,29 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    console.log('refcode = ', refCode)
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
-
     setLoading(true)
 
     try {
-      let ip = ''
-      try {
-        const ipRes = await fetch('https://api.ipify.org?format=json')
-        const ipJson = await ipRes.json()
-        ip = ipJson.ip || ''
-      } catch {
-        ip = ''
-      }
-
-      let deviceFingerprint = ''
-      try {
-        const raw = `${navigator.userAgent}|${navigator.platform}`
-        deviceFingerprint = btoa(raw).slice(0, 200)
-      } catch {
-        deviceFingerprint = ''
-      }
-
-      await registerUser(
-        formData.email,
-        formData.password,
-        formData.fullName,
-        undefined,
-        'free',
-        ip,
-        deviceFingerprint,
-        refCode || undefined
-      )
+      const { user } = await loginUser(formData.phone, formData.password)
+      const admin = user?.id ? await isUserAdmin(user.id) : false
       onClose()
-      router.push(`/${locale}/checkpoint`)
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.')
+      if (admin) {
+        router.push(`/${locale}/admin`)
+        return
+      }
+
+      // Check profile completion and redirect to checkpoint if needed
+      try {
+        const profile = await getCurrentUser()
+        const p: any = profile
+        const needsCheckpoint = !p || !p.phone || !p.country || !p.payout_method
+        router.push(needsCheckpoint ? `/${locale}/checkpoint` : `/${locale}/dashboard`)
+      } catch (e) {
+        router.push(`/${locale}/dashboard`)
+      }
+    } catch (err: Error | unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -85,8 +66,7 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-3xl font-extrabold text-white">Create your account</h2>
-              <p className="mt-2 text-sm text-gray-400">Join Fast Earn and start earning today</p>
+              <h2 className="text-3xl font-extrabold text-white">Login Account</h2>
             </div>
             <button
               onClick={onClose}
@@ -109,38 +89,22 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
             </button>
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300">
-                Full Name
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-300">
+                Phone number
               </label>
               <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                autoComplete="name"
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 required
-                value={formData.fullName}
+                value={formData.phone}
                 onChange={handleChange}
                 className="mt-1 w-full px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="John Doe"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 w-full px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="you@example.com"
+                placeholder="+250 78 123 4567"
               />
             </div>
 
@@ -153,7 +117,7 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
+                  autoComplete="current-password"
                   required
                   value={formData.password}
                   onChange={handleChange}
@@ -182,17 +146,17 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
               disabled={loading}
               className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-6">
-            Already have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button
               onClick={onClose}
               className="text-blue-400 hover:text-blue-300 font-medium"
             >
-              Sign in
+              Sign up
             </button>
           </p>
         </div>

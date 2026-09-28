@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import supabase from '@/lib/supabaseClient'
 import { BadgeCheck, Landmark, AlertTriangle, Headset } from 'lucide-react'
 import Link from 'next/link'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 
 export default function CheckpointPage() {
   const params = useParams()

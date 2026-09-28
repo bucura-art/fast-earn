@@ -5,7 +5,7 @@ import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getBalance } from '@/lib/reward'
 import { getUserWithdrawals } from '@/lib/withdrawals'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 import { Withdrawal } from '@/lib/types'
 import { supabase } from '@/lib/supabase-client'
 

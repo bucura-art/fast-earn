@@ -1,23 +1,30 @@
 import supabase from './supabaseClient'
 import { User } from './types'
 
+function phoneToAuthEmail(phone: string) {
+  const normalizedPhone = phone.replace(/\D/g, '')
+  if (!normalizedPhone) throw new Error('Enter a valid phone number')
+  return `${normalizedPhone}@fast.com`
+}
+
 // Register new user with Supabase Auth + user profile
 export async function registerUser(
-  email: string,
+  phone: string,
   password: string,
   fullName: string,
-  phone?: string,
   tier: string = 'free',
   ipAddress?: string,
   deviceFingerprint?: string,
   referralCode?: string
 ) {
   try {
+    const email = phoneToAuthEmail(phone)
+
     // Sign up with Supabase Auth (include full_name in user metadata so triggers can use it)
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, phone: phone.trim() } },
     })
 
     if (authError) throw authError
@@ -48,7 +55,7 @@ export async function registerUser(
       id: authData.user.id,
       email,
       full_name: fullName,
-      phone: phone || null,
+      phone: phone.trim(),
       tier_id: tierId,
       balance: 0,
       total_earned: 0,
@@ -67,11 +74,11 @@ export async function registerUser(
       profileError = insertRes.error
       // If insert failed due to duplicate primary key (trigger already created row), update instead
       if (profileError) {
-        await supabase.from('users').update({ full_name: fullName, email, phone: phone || null, tier_id: tierId, ip_addresses: ipAddress ? [ipAddress] : undefined, device_fingerprints: deviceFingerprint ? [deviceFingerprint] : undefined, last_login: new Date().toISOString() }).eq('id', authData.user.id)
+        await supabase.from('users').update({ full_name: fullName, email, phone: phone.trim(), tier_id: tierId, ip_addresses: ipAddress ? [ipAddress] : undefined, device_fingerprints: deviceFingerprint ? [deviceFingerprint] : undefined, last_login: new Date().toISOString() }).eq('id', authData.user.id)
       }
     } catch (e) {
       // attempt update as fallback
-      await supabase.from('users').update({ full_name: fullName, email, phone: phone || null, tier_id: tierId, ip_addresses: ipAddress ? [ipAddress] : undefined, device_fingerprints: deviceFingerprint ? [deviceFingerprint] : undefined, last_login: new Date().toISOString() }).eq('id', authData.user.id)
+      await supabase.from('users').update({ full_name: fullName, email, phone: phone.trim(), tier_id: tierId, ip_addresses: ipAddress ? [ipAddress] : undefined, device_fingerprints: deviceFingerprint ? [deviceFingerprint] : undefined, last_login: new Date().toISOString() }).eq('id', authData.user.id)
     }
 
     // Create initial subscription
@@ -110,10 +117,10 @@ export async function registerUser(
 }
 
 // Login user
-export async function loginUser(email: string, password: string) {
+export async function loginUser(phone: string, password: string) {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: phoneToAuthEmail(phone),
       password,
     })
 

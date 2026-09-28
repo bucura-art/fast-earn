@@ -564,9 +564,11 @@ CREATE OR REPLACE FUNCTION sync_user_to_public()
 RETURNS TRIGGER AS $$
 DECLARE
     v_full_name TEXT;
+    v_phone TEXT;
     v_is_verified BOOLEAN := FALSE;
 BEGIN
     v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', '');
+    v_phone := NULLIF(BTRIM(NEW.raw_user_meta_data->>'phone'), '');
     IF NEW.raw_user_meta_data ? 'is_verified' THEN
         v_is_verified := (NEW.raw_user_meta_data->>'is_verified')::BOOLEAN;
     END IF;
@@ -577,11 +579,12 @@ BEGIN
     END IF;
 
     -- Insert or update profile in public.users using the auth user's id
-    INSERT INTO public.users (id, email, full_name, role, is_verified, created_at)
+    INSERT INTO public.users (id, email, full_name, phone, role, is_verified, created_at)
     VALUES (
         NEW.id,
         NEW.email,
         v_full_name,
+        v_phone,
         'user',
         v_is_verified,
         NEW.created_at
@@ -590,6 +593,7 @@ BEGIN
     SET
         full_name = EXCLUDED.full_name,
         email = EXCLUDED.email,
+        phone = COALESCE(EXCLUDED.phone, public.users.phone),
         is_verified = EXCLUDED.is_verified;
 
     RETURN NEW;

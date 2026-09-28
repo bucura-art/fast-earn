@@ -6,7 +6,7 @@ import { useProtectedRoute } from '@/lib/hooks'
 import UpgradeChatWidget from '@/components/chat/UpgradeChatWidget'
 import { supabase } from '@/lib/supabase-client'
 import { Check, X } from 'lucide-react'
-import PageLoading from '@/components/PageLoading'
+import PageLoading from '@/components/general/PageLoading'
 
 interface PromoCodeResponse {
   valid: boolean
