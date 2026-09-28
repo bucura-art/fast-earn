@@ -34,7 +34,7 @@ function HomeContent() {
 
   const testimonials = [
     { quote: 'Ayiicyuzi hano barayatanga nubwo tuba twayakobokeye.', name: 'Aline', location: 'Kigali' },
-    { quote: 'Nonese nibi Bruce melodie yavugaga, amafranga tugiye kuyakorera kabisa', name: 'Jean', location: 'Musanze' },
+    { quote: 'Noneho nukureba video gusa, amafranga tugiye kuyakorera kabisa', name: 'Jean', location: 'Musanze' },
     { quote: 'Kandi babimbwiraga nkagira ni scam none ntangiye kuyaryaho.', name: 'Diane', location: 'Huye' },
     { quote: 'Nkunda ko iyo ugize ikibazo bahita bagufasha, iyi platform ifite support team yihuse', name: 'Patrick', location: 'Rubavu' },
     { quote: 'Uziko iyo ureferinze umuntu iyo yinjije nawe baguha bonus kuri buri kantu akoze, iyi fast earn ni sawa cyane kbsa.', name: 'Claudine', location: 'Rwamagana' },
