@@ -147,7 +147,7 @@ export async function creditReferralBonus(
     // Get referrer's current balance
     const { data: referrer, error: getError } = await supabase
       .from('users')
-      .select('balance, total_earned, referral_earnings')
+      .select('balance, referral_earnings')
       .eq('id', referrerId)
       .single()
 
@@ -158,7 +158,6 @@ export async function creditReferralBonus(
       .from('users')
       .update({
         balance: (referrer.balance || 0) + bonus,
-        total_earned: (referrer.total_earned || 0) + bonus,
         referral_earnings: (referrer.referral_earnings || 0) + bonus,
       })
       .eq('id', referrerId)

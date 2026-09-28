@@ -4,6 +4,7 @@ import { use } from 'react'
 
 import { useState, useEffect } from 'react'
 import PageLoading from '@/components/general/PageLoading'
+import SiteHeader from '@/components/general/SiteHeader'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getBalance, getWalletTransactions } from '@/lib/reward'
@@ -17,7 +18,6 @@ export default function WalletPage({ params }: WalletPageProps) {
   const { locale } = use(params)
   const { isProtected } = useProtectedRoute()
   const [balance, setBalance] = useState(0)
-  const [totalEarned, setTotalEarned] = useState(0)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -30,7 +30,6 @@ export default function WalletPage({ params }: WalletPageProps) {
         if (user) {
           const userBalance = await getBalance(user.id)
           setBalance(userBalance)
-          setTotalEarned(user.total_earned || 0)
 
           const recentTransactions = await getWalletTransactions(user.id, 100)
           setTransactions(recentTransactions)
@@ -51,25 +50,20 @@ export default function WalletPage({ params }: WalletPageProps) {
   const debitTransactions = transactions.filter((tx) => tx.type === 'debit')
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 text-white md:pb-8">
+      <SiteHeader locale={locale} />
+      <div className="container mx-auto px-4 pt-8">
         <div className="flex items-center justify-between mb-6">
-          <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">← Back</a>
-          <a href={`/${locale}/dashboard/withdrawals`} className="py-2 px-4 bg-emerald-600 hover:bg-emerald-500 rounded text-white font-bold">Withdraw</a>
+          <h1 className="text-4xl font-bold">Wallet</h1>
+          <a href={`/${locale}/wallet/withdrawals`} className="py-2 px-4 bg-emerald-600 hover:bg-emerald-500 rounded text-white font-bold">Withdraw</a>
         </div>
-        <h1 className="text-4xl font-bold mb-8">Wallet</h1>
 
         {/* Balance Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="p-8 rounded-2xl bg-linear-to-br from-blue-900/40 to-indigo-900/20 border border-blue-500/30">
             <p className="text-gray-300 text-sm mb-2">Current Balance</p>
             <p className="text-4xl font-extrabold text-blue-400">{balance.toLocaleString()}</p>
             <p className="text-blue-300 text-sm mt-2">RWF</p>
-          </div>
-          <div className="p-8 rounded-2xl bg-linear-to-br from-emerald-900/40 to-green-900/20 border border-emerald-500/30">
-            <p className="text-gray-300 text-sm mb-2">Total Earned</p>
-            <p className="text-4xl font-extrabold text-emerald-400">{totalEarned.toLocaleString()}</p>
-            <p className="text-emerald-300 text-sm mt-2">RWF</p>
           </div>
           <div className="p-8 rounded-2xl bg-linear-to-br from-purple-900/40 to-pink-900/20 border border-purple-500/30">
             <p className="text-gray-300 text-sm mb-2">Pending Withdrawal</p>
@@ -88,7 +82,7 @@ export default function WalletPage({ params }: WalletPageProps) {
 
           {/* Withdrawals */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <h2 className="text-2xl font-bold mb-6">Withdrawals</h2>
+            <h2 className="text-base font-semibold mb-6">Recent Withdrawals</h2>
             {debitTransactions.filter((tx) => tx.reference_type === 'withdrawal').length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {debitTransactions

@@ -806,7 +806,7 @@ BEGIN
   SELECT
     (SELECT COUNT(*) FROM users)::BIGINT,
     (SELECT COUNT(*) FROM users WHERE last_login > NOW() - INTERVAL '30 days')::BIGINT,
-    (SELECT COALESCE(SUM(total_earned), 0) FROM users)::NUMERIC,
+    (SELECT COALESCE(SUM(amount), 0) FROM wallet_transactions WHERE type = 'credit')::NUMERIC,
     (SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE status IN ('approved', 'paid'))::NUMERIC,
     (SELECT COUNT(*) FROM tasks WHERE is_active = TRUE)::BIGINT;
 END;

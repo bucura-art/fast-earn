@@ -75,16 +75,15 @@ export default function PricingPage({ params }: PageProps) {
     <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-20">
       <div className="container mx-auto px-4">
         <div className="mb-8">
-          <Link href={`/${locale}/dashboard`} className="inline-flex items-center text-gray-400 hover:text-white transition-colors">
+          <Link href={`/${locale}/workspace`} className="inline-flex items-center text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Back
           </Link>
         </div>
         <div className="text-center mb-16">
           <h1 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-emerald-400">
-            Membership account categories
+            Membership categories
           </h1>
-          <p className="text-xl text-gray-300">Upgrade to earn 3x more rewards than standard members.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">

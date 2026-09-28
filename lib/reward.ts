@@ -76,7 +76,7 @@ export async function creditWallet(
     // Update user balance
     const { data: user, error: getError } = await supabase
       .from('users')
-      .select('balance, total_earned')
+      .select('balance')
       .eq('id', userId)
       .single()
 
@@ -86,7 +86,6 @@ export async function creditWallet(
       .from('users')
       .update({
         balance: (user.balance || 0) + amount,
-        total_earned: (user.total_earned || 0) + amount,
       })
       .eq('id', userId)
 

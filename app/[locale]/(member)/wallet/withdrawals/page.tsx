@@ -4,9 +4,7 @@ import { use, useState, useEffect } from 'react'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getBalance } from '@/lib/reward'
-import { getUserWithdrawals } from '@/lib/withdrawals'
 import PageLoading from '@/components/general/PageLoading'
-import { Withdrawal } from '@/lib/types'
 import { supabase } from '@/lib/supabase-client'
 
 interface WithdrawalsPageProps {
@@ -17,7 +15,6 @@ export default function WithdrawalsPage({ params }: WithdrawalsPageProps) {
   const { locale } = use(params)
   const { isProtected } = useProtectedRoute()
   const [balance, setBalance] = useState(0)
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
   const [loading, setLoading] = useState(true)
   const [minimumWithdrawal, setMinimumWithdrawal] = useState(5000)
 
@@ -30,9 +27,6 @@ export default function WithdrawalsPage({ params }: WithdrawalsPageProps) {
         if (user) {
           const userBalance = await getBalance(user.id)
           setBalance(userBalance)
-
-          const userWithdrawals = await getUserWithdrawals(user.id)
-          setWithdrawals(userWithdrawals)
 
           // Fetch user-specific minimum withdrawal from the database
           const { data: minWithdrawal, error } = await supabase.rpc('get_user_minimum_withdrawal', {
@@ -60,10 +54,10 @@ export default function WithdrawalsPage({ params }: WithdrawalsPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mt-4 mb-6">
-          <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">{'<-'} Back</a>
+          <a href={`/${locale}/wallet`} className="text-sm text-gray-300 hover:text-white">{'<-'} Back</a>
         </div>
 
         <h1 className="text-4xl font-bold mb-8">Withdraw Funds</h1>
@@ -110,34 +104,6 @@ export default function WithdrawalsPage({ params }: WithdrawalsPageProps) {
           </div>
         </div>
 
-        <div className="p-8 rounded-2xl bg-white/5 border border-white/10">
-          <h2 className="text-2xl font-bold mb-6">Withdrawal History</h2>
-          {withdrawals.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {withdrawals.map((w) => (
-                <div key={w.id} className="p-4 bg-white/6 rounded-lg border border-white/10 flex items-center justify-between hover:shadow-md transition-shadow">
-                  <div>
-                    <p className="font-medium text-lg">{w.amount.toLocaleString()} RWF</p>
-                    <p className="text-gray-400 text-sm">{w.method} • {new Date(w.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      w.status === 'pending'
-                        ? 'bg-yellow-500/20 text-yellow-300'
-                        : w.status === 'approved'
-                          ? 'bg-green-500/20 text-green-300'
-                          : 'bg-red-500/20 text-red-300'
-                    }`}
-                  >
-                    {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-400">No withdrawal requests yet</p>
-          )}
-        </div>
       </div>
     </div>
   )

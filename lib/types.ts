@@ -9,7 +9,6 @@ export interface User {
   full_name: string
   phone?: string
   balance: number
-  total_earned: number
   referral_earnings: number
   referred_by?: string
   tier_id: string

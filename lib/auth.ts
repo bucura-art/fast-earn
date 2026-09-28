@@ -58,7 +58,6 @@ export async function registerUser(
       phone: phone.trim(),
       tier_id: tierId,
       balance: 0,
-      total_earned: 0,
       referral_earnings: 0,
       referred_by: referralCode || null,
       is_verified: false,

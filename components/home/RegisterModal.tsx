@@ -109,7 +109,7 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="fullName" className="block text-base font-medium text-white/90">
                 Name
               </label>
               <input
@@ -126,7 +126,7 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="phone" className="block text-base font-medium text-white/90">
                 Phone number
               </label>
               <input
@@ -139,12 +139,12 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
                 value={formData.phone}
                 onChange={handleChange}
                 className="mt-1 w-full px-3 py-2 border border-gray-600 rounded-md bg-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="+250 78 123 4567"
+                placeholder="078 123 4567"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="password" className="block text-base font-medium text-white/90">
                 Password
               </label>
               <div className="relative mt-1">

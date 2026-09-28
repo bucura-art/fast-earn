@@ -157,7 +157,7 @@ const creditReferralBonus = async (userId: string, rewardAmount: number) => {
 
     const { data: referrer, error: referrerError } = await supabase
       .from('users')
-      .select('balance, total_earned, referral_earnings')
+      .select('balance, referral_earnings')
       .eq('id', user.referred_by)
       .single()
 
@@ -167,7 +167,6 @@ const creditReferralBonus = async (userId: string, rewardAmount: number) => {
       .from('users')
       .update({
         balance: Number(referrer.balance || 0) + bonusAmount,
-        total_earned: Number(referrer.total_earned || 0) + bonusAmount,
         referral_earnings: Number(referrer.referral_earnings || 0) + bonusAmount,
       })
       .eq('id', user.referred_by)
@@ -356,7 +355,7 @@ export async function POST(request: NextRequest) {
 
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('balance, total_earned')
+      .select('balance')
       .eq('id', userId)
       .single()
 
@@ -366,7 +365,6 @@ export async function POST(request: NextRequest) {
       .from('users')
       .update({
         balance: Number(user.balance || 0) + rewardToCredit,
-        total_earned: Number(user.total_earned || 0) + rewardToCredit,
       })
       .eq('id', userId)
 

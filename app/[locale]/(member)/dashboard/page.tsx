@@ -1,10 +1,8 @@
 "use client"
 
-import { use, useState, useEffect, useRef } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Share2, Headset, Settings, Eye, EyeOff, Copy, BadgeCheck, Check, Globe, FileText, Shield, User as UserIcon, Wallet, Users, Target, Trophy } from 'lucide-react'
+import { Eye, EyeOff, Copy, BadgeCheck, User as UserIcon, Wallet, Users, Target, Trophy } from 'lucide-react'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getBalance, getWalletTransactions } from '@/lib/reward'
@@ -14,6 +12,7 @@ import { User, WalletTransaction } from '@/lib/types'
 import CopyButton from '@/components/general/CopyButton'
 import LanguageSwitcher from '@/components/general/LanguageSwitcher'
 import PageLoading from '@/components/general/PageLoading'
+import SiteHeader from '@/components/general/SiteHeader'
 import ReferralLeaderboard from '@/components/dashboard/ReferralLeaderboard'
 import supabase from '@/lib/supabaseClient'
 import { generateReferralLink } from '@/lib/referral'
@@ -30,10 +29,8 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   const [balance, setBalance] = useState(0)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [hideBalance, setHideBalance] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [showLanguageSwitcher, setShowLanguageSwitcher] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [dailyLimit, setDailyLimit] = useState(5)
   const [todayCount, setTodayCount] = useState(0)
@@ -64,14 +61,12 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           setBalance(userBalance)
           setTransactions(recentTransactions)
           setTodayCount(todayCountVal)
-          
-          // Get tier from subscription using standardized utility
+
           const tierName = (tierData.data?.name as any) || getTierNameFromSubscription(subscription)
-          const limit = getDailyTaskLimit(tierName)
-          setDailyLimit(limit)
-          
+          setDailyLimit(getDailyTaskLimit(tierName))
+
           if (process.env.NODE_ENV === 'development') {
-            console.log('Dashboard loaded:', { tierName, limit, subscription })
+            console.log('Dashboard loaded:', { tierName, limit: getDailyTaskLimit(tierName), subscription })
           }
         }
       } catch (error) {
@@ -84,20 +79,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     loadUserData()
   }, [isProtected])
 
-  useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!menuRef.current) return
-      if (!menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [])
-
   if (!isProtected || loading) {
     return <PageLoading />
   }
@@ -106,69 +87,8 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   const displayName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase() : ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
-      {/* Sticky Header Section */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-emerald-500 shadow-lg">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">FastEarn</h2>
-          <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setMenuOpen((s) => !s)}
-                aria-label="Menu"
-                className="p-2 rounded-lg bg-black hover:bg-gray-900 transition-colors text-white"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 6h.01M12 12h.01M12 18h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl p-2 bg-gradient-to-br from-blue-600 to-emerald-500 border border-white/20 shadow-2xl backdrop-blur-md z-20 flex flex-col gap-1">
-                  <a
-                    href={`/${locale}/support`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-white/15 transition-colors font-semibold"
-                  >
-                    <Headset size={25} className="bg-black rounded p-1" />
-                    <span>Contact support</span>
-                  </a>
-                  <a
-                    href={`/${locale}/dashboard/profile`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-white/15 transition-colors font-semibold"
-                  >
-                    <Settings size={25} className="bg-black rounded p-1" />
-                    <span>Account settings</span>
-                  </a>
-                  <button
-                    onClick={() => {
-                      setShowLanguageSwitcher(true)
-                      setMenuOpen(false)
-                    }}
-                    className="w-full flex items-center gap-3 text-left px-4 py-3 rounded-lg text-white hover:bg-white/15 transition-colors font-semibold"
-                  >
-                    <Globe size={25} className="bg-black rounded p-1" />
-                    <span>Change Language</span>
-                  </button>
-                  <a
-                    href={`/${locale}/privacy`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-white/15 transition-colors font-semibold"
-                  >
-                    <Shield size={25} className="bg-black rounded p-1" />
-                    <span>Privacy Policy</span>
-                  </a>
-                  <a
-                    href={`/${locale}/terms`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-white/15 transition-colors font-semibold"
-                  >
-                    <FileText size={25} className="bg-black rounded p-1" />
-                    <span>Terms of Service</span>
-                  </a>
-                </div>
-              )}
-            </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 pb-20 text-white md:pb-0">
+      <SiteHeader locale={locale} onChangeLanguage={() => setShowLanguageSwitcher(true)} />
 
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
@@ -184,7 +104,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
               )}
             </h1>
           </div>
-          <p className="text-gray-300 mt-2">Welcome to FastEarn. Here's your earnings overview</p>
         </div>
 
 
@@ -238,7 +157,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
             <div className="flex justify-between items-end mb-3">
               <div className="flex items-center gap-2">
                 <Target className="text-emerald-400" size={24} />
-                <h2 className="text-xl font-bold text-white">Daily Goal</h2>
+                <h2 className="text-xl font-bold text-white">Today Tasks</h2>
               </div>
               <div className="text-right">
                 <span className={`text-3xl font-bold ${todayCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>{todayCount}</span>
@@ -256,61 +175,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <a 
-            href={`/${locale}/dashboard/videos`}
-            className="relative overflow-hidden rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 transition-colors group"
-          >
-            <Image
-              src="/images/CTA/video.jpg"
-              alt="Watch Videos"
-              width={600}
-              height={350}
-              className="w-full h-65 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-              unoptimized
-            />
-            <div className="p-6 relative z-10 flex flex-col items-center text-center">
-              <h3 className="text-lg font-bold mb-2 px-4 py-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-900/20">Watch Videos</h3>
-              <p className="text-gray-300 text-sm">Earn money by watching short videos</p>
-            </div>
-          </a>
-          <a
-            href={`/${locale}/dashboard/tasks`}
-            className="relative overflow-hidden rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 transition-colors group"
-          >
-            <Image
-              src="/images/CTA/tasks.jpg"
-              alt="Complete Tasks"
-              width={600}
-              height={350}
-              className="w-full h-65 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-              unoptimized
-            />
-            <div className="p-6 relative z-10 flex flex-col items-center text-center">
-              <h3 className="text-lg font-bold mb-2 px-4 py-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-900/20">Complete Tasks</h3>
-              <p className="text-gray-300 text-sm">Earn money by completing quick tasks</p>
-            </div>
-          </a>
-          <a
-            href={`/${locale}/dashboard/wallet`}
-            className="relative overflow-hidden rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors group"
-          >
-            <Image
-              src="/images/CTA/wallet.jpg"
-              alt="View Wallet"
-              width={600}
-              height={350}
-              className="w-full h-65 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-              unoptimized
-            />
-            <div className="p-6 relative z-10 flex flex-col items-center text-center">
-              <h3 className="text-lg font-bold mb-2 px-4 py-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-900/20">View Wallet</h3>
-              <p className="text-gray-300 text-sm">Check your rewads and withdraw</p>
-            </div>
-          </a>
-        </div>
-        
       </div>
 
       {/* Language Switcher Modal */}

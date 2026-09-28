@@ -8,6 +8,7 @@ import RegisterModal from '@/components/home/RegisterModal'
 import { useParams, useSearchParams } from 'next/navigation'
 import PageLoading from '@/components/general/PageLoading'
 import HomeMarque from '@/components/home/HomeMarque'
+import Footer from '@/components/general/Footer'
 
 const Section = ({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) => (
   <section className={`py-16 md:py-24 ${className}`}>
@@ -144,6 +145,7 @@ function HomeContent() {
         isOpen={showRegisterModal} 
         onClose={() => setShowRegisterModal(false)} 
       />
+      <Footer locale={locale} />
     </div>
   )
 }

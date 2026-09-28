@@ -72,9 +72,8 @@ Main file handling referral logic with 7 exported functions:
 - **Updates:**
   1. `referrals.reward` += bonus
   2. `users.balance` += bonus
-  3. `users.total_earned` += bonus
-  4. `users.referral_earnings` += bonus
-  5. Inserts wallet transaction record
+  3. `users.referral_earnings` += bonus
+  4. Inserts wallet transaction record
 - **Called by:** [app/api/complete-task/route.ts](app/api/complete-task/route.ts) line 124
 - **Note:** Runs silently - failures logged but don't block task completion
 
@@ -122,7 +121,6 @@ const REFERRAL_BONUS_BY_TIER: Record<string, number> = {
 5. **Update Referral:** Add bonus to cumulative `referrals.reward`
 6. **Credit Referrer:** 
    - `balance` += bonus
-   - `total_earned` += bonus
    - `referral_earnings` += bonus
 7. **Log Transaction:** Insert into `wallet_transactions` with type `referral_bonus`
 
@@ -225,9 +223,7 @@ creditReferralBonus(referred_user_id, reward_amount)
 4. UPDATE referrals SET reward += bonus
 5. UPDATE users SET:
    - balance += bonus
-   - total_earned += bonus
-   - referral_earnings += bonus
-6. INSERT wallet_transactions record
+7. INSERT wallet_transactions record
 ```
 
 ### Phase 3: Referrer Views Earnings

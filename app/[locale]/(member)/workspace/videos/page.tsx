@@ -13,6 +13,7 @@ import { Play, CheckCircle2, AlertCircle, X, Lock } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
 import { TIER_MULTIPLIERS } from '@/lib/tierUtils'
 import PageLoading from '@/components/general/PageLoading'
+import SiteNav from '@/components/general/SiteNav'
 import TaskVideoPlayer from '@/components/tasks/TaskVideoPlayer'
 
 interface VideosPageProps {
@@ -201,7 +202,7 @@ export default function VideosPage({ params }: VideosPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 pt-8 text-white md:pb-8">
       <div className="container mx-auto px-4">
         <div className="mb-6">
           <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">← Back</a>
@@ -367,7 +368,7 @@ export default function VideosPage({ params }: VideosPageProps) {
             <p className="text-gray-400 text-lg">No videos available at the moment</p>
             <p className="text-gray-500 text-sm mb-6">Check back later for new sponsored videos</p>
             <a
-              href={`/${locale}/dashboard/tasks`}
+              href={`/${locale}/workspace/tasks`}
               className="inline-block py-2 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg"
             >
               Complete Tasks Instead
@@ -375,6 +376,7 @@ export default function VideosPage({ params }: VideosPageProps) {
           </div>
         )}
       </div>
+      <SiteNav locale={locale} />
     </div>
   )
 }
