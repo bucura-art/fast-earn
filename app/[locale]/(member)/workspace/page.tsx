@@ -33,7 +33,6 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
 							<h2 className="mb-2 rounded-lg bg-emerald-600 px-4 py-2 text-lg font-bold text-white shadow-lg shadow-emerald-900/20">
 								Watch Videos
 							</h2>
-							<p className="text-sm text-gray-300">Earn money by watching short videos</p>
 						</div>
 					</Link>
 
@@ -51,9 +50,8 @@ export default async function WorkspacePage({ params }: WorkspacePageProps) {
 						/>
 						<div className="flex flex-col items-center p-6 text-center">
 							<h2 className="mb-2 rounded-lg bg-emerald-600 px-4 py-2 text-lg font-bold text-white shadow-lg shadow-emerald-900/20">
-								Complete Tasks
+								Quick Tasks
 							</h2>
-							<p className="text-sm text-gray-300">Earn money by completing quick tasks</p>
 						</div>
 					</Link>
 				</div>

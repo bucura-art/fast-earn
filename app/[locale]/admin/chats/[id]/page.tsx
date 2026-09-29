@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { Send, X } from 'lucide-react'
 
 interface Message {

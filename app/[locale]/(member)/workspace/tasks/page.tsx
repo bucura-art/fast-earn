@@ -1,12 +1,14 @@
 "use client"
 
 import { use, useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { calculateTaskReward } from '@/lib/reward'
 import { completeTask, getAvailableTasks, getTask, getUserTaskCompletions, startTask, getTodayTaskCount } from '@/lib/tasks'
 import PageLoading from '@/components/general/PageLoading'
+import SiteHeader from '@/components/general/SiteHeader'
 import { getUserSubscription, getDailyTaskLimit, getTierNameFromSubscription } from '@/lib/subscription'
 import { Task } from '@/lib/types'
 import { AlertCircle, CheckCircle2, Clock3, X, Lock, Eye, Share2 } from 'lucide-react'
@@ -431,25 +433,30 @@ export default function TasksPage({ params }: TasksPageProps) {
   const hasPendingTasks = useMemo(() => Object.keys(pendingTasks).length > 0, [pendingTasks])
 
   if (loading) {
-    return <PageLoading />
+    return (
+      <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
+        <SiteHeader locale={locale} />
+        <PageLoading className="min-h-0 flex-1" />
+      </div>
+    )
   }
 
   const referralLink = userId ? generateReferralLink(userId) : ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-4">
-          <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">
-            {'<-'} Back
-          </a>
-        </div>
-
-        <h1 className="text-4xl font-bold mb-2">Available Tasks</h1>
-        <p className="text-gray-300 mb-6">Complete simple tasks to earn rewards</p>
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 text-white md:pb-8">
+      <SiteHeader locale={locale} />
+      <div className="container mx-auto px-4 pt-8">
+        <nav aria-label="Breadcrumb" className="mb-6 text-sm text-gray-300">
+          <ol className="flex items-center gap-2">
+            <li><Link href={`/${locale}/workspace`} className="text-2xl text-white">Workspace</Link></li>
+            <li aria-hidden="true">&gt;</li>
+            <li aria-current="page" className="font-semibold text-white">Tasks</li>
+          </ol>
+        </nav>
 
         {notification && (
-          <div className="fixed top-4 right-4 z-[60] max-w-sm w-[calc(100%-2rem)] md:w-full">
+          <div className="fixed top-4 right-4 z-60 max-w-sm w-[calc(100%-2rem)] md:w-full">
             <div
               className={`border shadow-2xl backdrop-blur-md p-4 bg-slate-900/95 ${
                 notification.type === 'success'
@@ -495,8 +502,7 @@ export default function TasksPage({ params }: TasksPageProps) {
 
         <div className="mb-6 p-4 bg-blue-600/10 border border-blue-400/30 rounded-lg flex justify-between items-center">
           <div>
-            <p className="text-white text-xl font-bold">Daily task</p>
-            <p className="text-blue-300 text-xs">Tasks limit is based on your account category</p>
+            <p className="text-white text-xl font-bold">Daily Limit</p>
             {dailyLimit < 20 && (
               <button
                 onClick={() => router.push(`/${locale}/pricing`)}
@@ -508,7 +514,7 @@ export default function TasksPage({ params }: TasksPageProps) {
           </div>
           <div className="text-right">
             <span className={`text-2xl font-bold ${todayCount >= dailyLimit ? 'text-red-400' : 'text-white'}`}>{todayCount}</span>
-            <span className="text-blue-300">/{dailyLimit}</span>
+            <span className="text-white/500">/{dailyLimit}</span>
           </div>
         </div>
 
@@ -539,8 +545,8 @@ export default function TasksPage({ params }: TasksPageProps) {
                   </button>
                 </div>
 
-                <h3 className="text-xl font-bold mb-2 flex-grow">Referral Program</h3>
-                <p className="text-gray-200 text-lg mb-4">Share Fast-Earn link with friends and earn 5-20% bonuses on the tasks they complete.</p>
+                <h3 className="text-xl font-bold mb-2 grow">Referral Program</h3>
+                <p className="text-gray-200 text-base mb-4">Invite friends and earn 5-20% bonuses on the tasks they complete.</p>
 
                 <div className="space-y-2 mb-6 pb-6 border-b border-white/10">
                   <div className="flex justify-between text-sm">
@@ -591,8 +597,8 @@ export default function TasksPage({ params }: TasksPageProps) {
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-bold mb-2 break-words">{task.title}</h3>
-                  <p className="text-gray-400 text-sm mb-4 flex-grow break-words">{task.description}</p>
+                  <h3 className="text-xl font-bold mb-2 wrap-break-word">{task.title}</h3>
+                  <p className="text-gray-400 text-sm mb-4 grow wrao-break-word">{task.description}</p>
 
                   <div className="space-y-2 mb-6 pb-6 border-b border-white/10">
                     <div className="flex justify-between text-sm">

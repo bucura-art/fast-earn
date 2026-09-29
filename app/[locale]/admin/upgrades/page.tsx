@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { Check, CheckCircle, X } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 
@@ -14,8 +14,6 @@ interface UpgradeRequest {
   tiers?: { name?: string; monthly_price?: number }
   amount: number
   paid_phone: string
-  promo_code?: string | null
-  discount_amount?: number
   final_amount?: number
   status: 'pending' | 'confirmed' | 'rejected'
   admin_id?: string
@@ -177,18 +175,6 @@ export default function AdminUpgradesPage({ params }: { params: Promise<{ locale
                     <p className="text-gray-400 text-sm">Amount</p>
                     <p className="text-white font-semibold">{req.amount} RWF</p>
                   </div>
-                  {req.promo_code && (
-                    <div>
-                      <p className="text-gray-400 text-sm">Promo Code</p>
-                      <p className="text-emerald-400 font-semibold">{req.promo_code}</p>
-                    </div>
-                  )}
-                  {req.discount_amount && req.discount_amount > 0 && (
-                    <div>
-                      <p className="text-gray-400 text-sm">Discount</p>
-                      <p className="text-green-400 font-semibold">-{req.discount_amount} RWF</p>
-                    </div>
-                  )}
                   {req.final_amount && (
                     <div>
                       <p className="text-gray-400 text-sm">Final Amount</p>

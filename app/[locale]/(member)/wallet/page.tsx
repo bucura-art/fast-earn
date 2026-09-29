@@ -44,7 +44,14 @@ export default function WalletPage({ params }: WalletPageProps) {
     loadWalletData()
   }, [isProtected])
 
-  if (loading) return <PageLoading />
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
+        <SiteHeader locale={locale} />
+        <PageLoading className="min-h-0 flex-1" />
+      </div>
+    )
+  }
 
   const creditTransactions = transactions.filter((tx) => tx.type === 'credit')
   const debitTransactions = transactions.filter((tx) => tx.type === 'debit')

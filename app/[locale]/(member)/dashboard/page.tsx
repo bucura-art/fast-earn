@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Copy, BadgeCheck, User as UserIcon, Wallet, Users, Target, Trophy } from 'lucide-react'
+import { Eye, EyeOff, Copy, Wallet, Users, Target, Trophy } from 'lucide-react'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getBalance, getWalletTransactions } from '@/lib/reward'
@@ -32,6 +32,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   const [showLanguageSwitcher, setShowLanguageSwitcher] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [redirecting, setRedirecting] = useState(false)
   const [dailyLimit, setDailyLimit] = useState(5)
   const [todayCount, setTodayCount] = useState(0)
 
@@ -50,19 +51,28 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         setUser(currentUser)
 
         if (currentUser) {
-          const [userBalance, recentTransactions, todayCountVal, subscription, tierData] = await Promise.all([
+          const [subscription, tierData] = await Promise.all([
+            getUserSubscription(currentUser.id),
+            currentUser.tier_id ? supabase.from('tiers').select('name').eq('id', currentUser.tier_id).maybeSingle() : Promise.resolve({ data: null })
+          ])
+
+          const tierName = (tierData.data?.name as any) || getTierNameFromSubscription(subscription)
+          if (tierName === 'free') {
+            setRedirecting(true)
+            router.replace(`/${locale}/pricing`)
+            return
+          }
+
+          const [userBalance, recentTransactions, todayCountVal] = await Promise.all([
             getBalance(currentUser.id),
             getWalletTransactions(currentUser.id, 10),
             getTodayTaskCount(currentUser.id),
-            getUserSubscription(currentUser.id),
-            currentUser.tier_id ? supabase.from('tiers').select('name').eq('id', currentUser.tier_id).maybeSingle() : Promise.resolve({ data: null })
           ])
 
           setBalance(userBalance)
           setTransactions(recentTransactions)
           setTodayCount(todayCountVal)
 
-          const tierName = (tierData.data?.name as any) || getTierNameFromSubscription(subscription)
           setDailyLimit(getDailyTaskLimit(tierName))
 
           if (process.env.NODE_ENV === 'development') {
@@ -77,34 +87,23 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     }
 
     loadUserData()
-  }, [isProtected])
+  }, [isProtected, locale, router])
 
-  if (!isProtected || loading) {
-    return <PageLoading />
+  if (!isProtected || loading || redirecting) {
+    return (
+      <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
+        <SiteHeader locale={locale} onChangeLanguage={() => setShowLanguageSwitcher(true)} />
+        <PageLoading className="min-h-0 flex-1" />
+      </div>
+    )
   }
 
-  const firstName = user?.full_name?.split(' ')[0] || ''
-  const displayName = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase() : ''
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 pb-20 text-white md:pb-0">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 pb-20 text-white md:pb-0">
       <SiteHeader locale={locale} onChangeLanguage={() => setShowLanguageSwitcher(true)} />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center text-xl font-bold shadow-lg border border-white/10">
-              <UserIcon size={25} className="text-white" />
-            </div>
-            <h1 className="text-4xl font-bold flex items-center gap-2">
-              {displayName}
-              {user?.is_verified && (
-                <BadgeCheck className="text-blue-400 w-6 h-6" fill="currentColor" stroke="white" />
-              )}
-            </h1>
-          </div>
-        </div>
+        <h1 className="mb-8 text-4xl font-bold">Dashboard</h1>
 
 
         {/* Balance */}
@@ -161,7 +160,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
               </div>
               <div className="text-right">
                 <span className={`text-3xl font-bold ${todayCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>{todayCount}</span>
-                <span className="text-blue-300 text-lg">/{dailyLimit}</span>
+                <span className="text-white/500 text-lg">/{dailyLimit}</span>
               </div>
             </div>
             
@@ -171,7 +170,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
                 style={{ width: `${Math.min(100, (todayCount / dailyLimit) * 100)}%` }}
               />
             </div>
-            <h3 className="mt-2 text-xs text-blue-300 text-right">{todayCount >= dailyLimit ? 'Daily limit reached!' : `${dailyLimit - todayCount} tasks remaining`}</h3>
           </div>
         </div>
 
@@ -180,7 +178,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
       {/* Language Switcher Modal */}
       {showLanguageSwitcher && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gradient-to-b from-slate-900 to-indigo-950 rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-linear-to-b from-slate-900 to-indigo-950 rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl">
             <h2 className="text-2xl font-bold text-white mb-4">Change Language</h2>
             <LanguageSwitcher />
             <button

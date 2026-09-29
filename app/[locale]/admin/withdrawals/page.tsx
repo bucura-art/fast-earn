@@ -4,7 +4,7 @@ import { use, useEffect, useState } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
 import { approveWithdrawal, rejectWithdrawal } from '@/lib/admin'
 import { getCurrentUser } from '@/lib/auth'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { Check, X } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 

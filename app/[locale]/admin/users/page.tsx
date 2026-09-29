@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
 import { getAllUsers, toggleUserSuspension, verifyUser, logFraud, resetUserBalanceToHalf } from '@/lib/admin'
 import { getCurrentUser } from '@/lib/auth'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { Search, Shield, Ban, CheckCircle } from 'lucide-react'
 
 interface UserManagementProps {

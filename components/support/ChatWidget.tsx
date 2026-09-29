@@ -97,10 +97,7 @@ export default function ChatWidget({ initialAction, initialTier, locale = 'en', 
     return (
       <UpgradeChatWidget
         initialTier={initialTier}
-        locale={locale}
         tierPrices={tierPrices}
-        onSwitchFlow={(next) => setActiveFlow(next)}
-        onConversationCreated={onConversationCreated}
       />
     )
   }

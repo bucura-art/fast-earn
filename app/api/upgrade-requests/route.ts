@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey)
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, requestedTierId, requestedTier, amount, paidPhone, promoCode } = await req.json()
+    const { userId, requestedTierId, requestedTier, amount, paidPhone } = await req.json()
     let tierId = requestedTierId
 
     if (!tierId && requestedTier) {
@@ -33,44 +33,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Handle promo code if provided
-    let discountAmount = 0
-    let finalAmount = amount
-
-    if (promoCode && promoCode.trim()) {
-      const { data: promoData, error: promoError } = await supabase
-        .from('promo_codes')
-        .select('*')
-        // case-sensitive exact match
-        .eq('code', promoCode.trim())
-        .eq('is_active', true)
-        .single()
-
-      if (promoData) {
-        // Validate dates and usage limits
-        const now = new Date()
-        const validFrom = new Date(promoData.valid_from)
-        const validUntil = promoData.valid_until ? new Date(promoData.valid_until) : null
-
-        const isWithinDateRange =
-          now >= validFrom && (!validUntil || now <= validUntil)
-        const isUnderUsageLimit =
-          !promoData.max_uses || promoData.used_count < promoData.max_uses
-
-        if (isWithinDateRange && isUnderUsageLimit) {
-          // Calculate discount
-          discountAmount = (amount * promoData.discount_percent) / 100
-          finalAmount = amount - discountAmount
-
-          // Increment the used_count
-          await supabase
-            .from('promo_codes')
-            .update({ used_count: (promoData.used_count || 0) + 1 })
-            .eq('id', promoData.id)
-        }
-      }
-    }
-
     const { data, error } = await supabase
       .from('upgrade_requests')
       .insert({
@@ -78,9 +40,7 @@ export async function POST(req: NextRequest) {
         requested_tier_id: tierId,
         amount,
         paid_phone: paidPhone,
-        promo_code: promoCode && promoCode.trim() ? promoCode.trim() : null,
-        discount_amount: discountAmount,
-        final_amount: finalAmount,
+        final_amount: amount,
       })
       .select()
       .single()

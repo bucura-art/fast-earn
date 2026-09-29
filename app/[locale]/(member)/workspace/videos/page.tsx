@@ -2,6 +2,7 @@
 
 import { use } from 'react'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
@@ -13,6 +14,7 @@ import { Play, CheckCircle2, AlertCircle, X, Lock } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
 import { TIER_MULTIPLIERS } from '@/lib/tierUtils'
 import PageLoading from '@/components/general/PageLoading'
+import SiteHeader from '@/components/general/SiteHeader'
 import SiteNav from '@/components/general/SiteNav'
 import TaskVideoPlayer from '@/components/tasks/TaskVideoPlayer'
 
@@ -198,21 +200,30 @@ export default function VideosPage({ params }: VideosPageProps) {
   }
 
   if (loading) {
-    return <PageLoading />
+    return (
+      <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
+        <SiteHeader locale={locale} />
+        <PageLoading className="min-h-0 flex-1" />
+        <SiteNav locale={locale} />
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 pt-8 text-white md:pb-8">
-      <div className="container mx-auto px-4">
-        <div className="mb-6">
-          <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">← Back</a>
-        </div>
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 text-white md:pb-8">
+      <SiteHeader locale={locale} />
+      <div className="container mx-auto px-4 pt-8">
+        <nav aria-label="Breadcrumb" className="mb-6 text-sm text-gray-300">
+          <ol className="flex items-center gap-2">
+            <li><Link href={`/${locale}/workspace`} className="text-2xl text-white">Workspace</Link></li>
+            <li aria-hidden="true">&gt;</li>
+            <li aria-current="page" className="font-semibold text-white">Videos</li>
+          </ol>
+        </nav>
 
-        <h1 className="text-4xl font-bold mb-2">Watch Videos & Earn</h1>
-        <p className="text-gray-300 mb-6">Complete sponsored videos to earn rewards. Each video has a minimum watch time requirement.</p>
 
         {notification && (
-          <div className="fixed top-4 right-4 z-[60] max-w-sm w-[calc(100%-2rem)] md:w-full">
+          <div className="fixed top-4 right-4 z-60 max-w-sm w-[calc(100%-2rem)] md:w-full">
             <div
               className={`border shadow-2xl backdrop-blur-md p-4 bg-slate-900/95 ${
                 notification.type === 'success'
@@ -248,22 +259,21 @@ export default function VideosPage({ params }: VideosPageProps) {
           </div>
         )}
 
-        <div className="mb-6 p-4 bg-purple-600/10 border border-purple-400/30 rounded-lg flex justify-between items-center">
+        <div className="mb-6 p-4 bg-blue-600/10 border border-blue-400/30 rounded-lg flex justify-between items-center">
           <div>
-            <p className="text-purple-200 text-sm font-bold">Daily Task Limit</p>
-            <p className="text-purple-100 text-xs">Upgrade to increase your limit</p>
+            <p className="text-white text-xl font-bold">Daily Limit</p>
             {dailyLimit < 20 && (
               <button
                 onClick={() => router.push(`/${locale}/pricing`)}
-                className="mt-2 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded transition-colors"
+                className="mt-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded transition-colors"
               >
-                Upgrade to Pro
+                Upgrade Account
               </button>
             )}
           </div>
           <div className="text-right">
-            <span className={`text-2xl font-bold ${todayCount >= dailyLimit ? 'text-red-400' : 'text-purple-400'}`}>{todayCount}</span>
-            <span className="text-purple-300">/{dailyLimit}</span>
+            <span className={`text-2xl font-bold ${todayCount >= dailyLimit ? 'text-red-400' : 'text-white'}`}>{todayCount}</span>
+            <span className="text-white/500">/{dailyLimit}</span>
           </div>
         </div>
 
@@ -323,8 +333,8 @@ export default function VideosPage({ params }: VideosPageProps) {
                   </div>
                 </button>
 
-                <div className="p-6 flex flex-col flex-grow">
-                  <h3 className="text-xl font-bold mb-2 flex-grow">{video.title}</h3>
+                <div className="p-6 flex flex-col grow">
+                  <h3 className="text-xl font-bold mb-2 grow">{video.title}</h3>
                   <p className="text-gray-400 text-sm mb-4">{video.description}</p>
 
                   {(video as any).is_upsell && (
@@ -353,7 +363,7 @@ export default function VideosPage({ params }: VideosPageProps) {
                     <div className="space-y-2 mt-auto">
                       <button
                         onClick={() => router.push(`/${locale}/pricing`)}
-                        className="w-full py-3 px-4 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold rounded-lg transition-colors text-sm"
+                        className="w-full py-3 px-4 bg-linear-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold rounded-lg transition-colors text-sm"
                       >
                         {(video as any).is_upsell ? 'Upgrade to Unlock' : 'Earn 3x'}
                       </button>

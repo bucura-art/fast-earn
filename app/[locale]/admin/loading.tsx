@@ -1,4 +1,4 @@
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 
 export default function Loading() {
   return <AdminLoading />

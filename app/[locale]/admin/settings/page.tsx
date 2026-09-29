@@ -4,7 +4,7 @@ import { use, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAdminRoute } from '@/lib/hooks'
 import { getCurrentUser, updateUserProfile, logout } from '@/lib/auth'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { LogOut } from 'lucide-react'
 
 interface AdminSettingsPageProps {

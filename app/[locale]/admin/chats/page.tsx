@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useAdminRoute } from '@/lib/hooks'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { MessageSquare, Clock } from 'lucide-react'
 
 interface Conversation {

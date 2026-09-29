@@ -7,7 +7,7 @@ import LoginModal from '@/components/home/LoginModal'
 import RegisterModal from '@/components/home/RegisterModal'
 import { useParams, useSearchParams } from 'next/navigation'
 import PageLoading from '@/components/general/PageLoading'
-import HomeMarque from '@/components/home/HomeMarque'
+import HomeMarque from '@/components/home/HomeBanner'
 import Footer from '@/components/general/Footer'
 
 const Section = ({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) => (

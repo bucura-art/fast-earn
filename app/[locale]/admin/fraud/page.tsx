@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
 import { getFraudLogs } from '@/lib/admin'
-import AdminLoading from '@/components/admin/AdminLoading'
+import AdminLoading from '@/components/admin/AdminPageLoading'
 import { AlertTriangle, TrendingUp, RefreshCw } from 'lucide-react'
 
 interface FraudManagementProps {
