@@ -1,11 +1,9 @@
 'use client'
 
-import { ReactNode, useState, useEffect, Suspense } from 'react'
+import { ReactNode, Suspense } from 'react'
 import FloatingActivityAlerts from '@/components/home/FloatingActivityAlerts'
 import { homeActivityNotifications } from '@/lib/data/activityNotifications'
-import LoginModal from '@/components/home/LoginModal'
-import RegisterModal from '@/components/home/RegisterModal'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import PageLoading from '@/components/general/PageLoading'
 import HomeMarque from '@/components/home/HomeBanner'
 import Footer from '@/components/general/Footer'
@@ -21,12 +19,19 @@ const Section = ({ title, children, className = '' }: { title: string; children:
 
 function HomeContent() {
   const params = useParams()
+  const router = useRouter()
   const rawLocale = params?.locale
   const locale = Array.isArray(rawLocale) ? rawLocale[0] ?? 'en' : rawLocale ?? 'en'
   const searchParams = useSearchParams()
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [refCode, setRefCode] = useState<string | null>(null)
-  const [showRegisterModal, setShowRegisterModal] = useState(false)
+
+  const openAuth = (mode: 'login' | 'register') => {
+    const query = new URLSearchParams({ mode })
+    const refCode = searchParams.get('ref')
+    if (refCode) {
+      query.set('ref', refCode)
+    }
+    router.push(`/${locale}/auth?${query.toString()}`)
+  }
 
   const howItWorksSteps = [
     { title: 'Register', desc: 'Create a free account in seconds.' },
@@ -49,24 +54,9 @@ function HomeContent() {
     { question: 'Can I upgrade my account category later?', answer: 'Yes. You can upgrade to Pro or Pro Max anytime from your dashboard.' },
   ]
 
-  useEffect(() => {
-    const ref = searchParams?.get('ref')
-    if (ref) {
-      setRefCode(ref)
-    }
-  }, [searchParams])
-
-  // Function to handle opening the register modal with a referral code
-  const openRegisterModal = (ref?: string) => {
-    if (ref) {
-      setRefCode(ref)
-    }
-    setShowRegisterModal(true)
-  }
-
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
-      <HomeMarque onClaim={() => openRegisterModal()} />
+      <HomeMarque onClaim={() => openAuth('register')} />
       <FloatingActivityAlerts items={homeActivityNotifications} />
 
       <header className="relative overflow-hidden py-28 text-center">
@@ -79,13 +69,13 @@ function HomeContent() {
           </p>
           <div className="flex items-center justify-center gap-4">
             <button 
-              onClick={() => openRegisterModal()}
+              onClick={() => openAuth('register')}
               className="bg-emerald-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-colors"
             >
               Start Earning
             </button>
             <button 
-              onClick={() => setShowLoginModal(true)}
+              onClick={() => openAuth('login')}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-colors"
             >
               Log in
@@ -133,17 +123,6 @@ function HomeContent() {
         </div>
       </Section>
 
-      <LoginModal 
-        locale={locale} 
-        isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)} 
-      />
-      <RegisterModal 
-        locale={locale}
-        refCode={refCode}
-        isOpen={showRegisterModal} 
-        onClose={() => setShowRegisterModal(false)} 
-      />
       <Footer locale={locale} />
     </div>
   )

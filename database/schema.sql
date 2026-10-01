@@ -611,13 +611,39 @@ CREATE TRIGGER trg_sync_user_to_public
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION sync_user_to_public();
 
--- Credit fixed signup bonuses once when a referred profile is first created.
+-- Credit the welcome bonus for every new profile and a referral bonus when applicable.
 CREATE OR REPLACE FUNCTION award_signup_referral_bonus()
 RETURNS TRIGGER AS $$
 DECLARE
     v_referral_id UUID;
+    v_existing_welcome_transaction UUID;
 BEGIN
-    IF NEW.referred_by IS NULL OR NEW.referred_by = NEW.id THEN
+    -- Serialize processing for this user and make the welcome credit idempotent.
+    PERFORM 1
+    FROM public.users
+    WHERE id = NEW.id
+    FOR UPDATE;
+
+    SELECT id
+    INTO v_existing_welcome_transaction
+    FROM public.wallet_transactions
+    WHERE user_id = NEW.id
+      AND type = 'credit'
+      AND reference_type = 'welcome_bonus'
+    LIMIT 1;
+
+    IF v_existing_welcome_transaction IS NULL THEN
+        UPDATE public.users
+        SET balance = COALESCE(balance, 0) + 6000
+        WHERE id = NEW.id;
+
+        INSERT INTO public.wallet_transactions (user_id, type, amount, reference_type, reference_id)
+        VALUES (NEW.id, 'credit', 6000, 'welcome_bonus', NEW.id);
+    END IF;
+
+    IF NEW.referred_by IS NULL
+       OR NEW.referred_by = NEW.id
+       OR NOT EXISTS (SELECT 1 FROM public.users WHERE id = NEW.referred_by) THEN
         RETURN NEW;
     END IF;
 
@@ -647,19 +673,13 @@ BEGIN
     END IF;
 
     UPDATE public.users
-    SET balance = COALESCE(balance, 0) + 6000
-    WHERE id = NEW.id;
-
-    UPDATE public.users
     SET
         balance = COALESCE(balance, 0) + 3000,
         referral_earnings = COALESCE(referral_earnings, 0) + 3000
     WHERE id = NEW.referred_by;
 
     INSERT INTO public.wallet_transactions (user_id, type, amount, reference_type, reference_id)
-    VALUES
-        (NEW.id, 'credit', 6000, 'welcome_bonus', v_referral_id),
-        (NEW.referred_by, 'credit', 3000, 'referral_bonus', v_referral_id);
+    VALUES (NEW.referred_by, 'credit', 3000, 'referral_bonus', v_referral_id);
 
     RETURN NEW;
 END;

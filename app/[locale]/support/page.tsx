@@ -129,9 +129,6 @@ export default function SupportPage({ params }: { params: Promise<{ locale: stri
           <div className={`lg:col-span-4 space-y-6 ${showChatOnMobile ? 'hidden lg:block' : 'block'}`}>
             <div>
               <h1 className="text-3xl font-bold mb-2">Support Chat</h1>
-              <p className="text-gray-300">
-                Start a new support conversation or continue an existing one with our support team
-              </p>
             </div>
 
             <div className="rounded-2xl bg-white/5 border border-white/10 p-4">

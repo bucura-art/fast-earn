@@ -149,7 +149,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 						{checkingIn ? 'Checking in...' : checkedInToday ? 'Checked-in' : 'Check-in'}
 					</button>
 				</div>
-				<p className="mb-8 text-gray-300">Choose how you want to earn today.</p>
 
 				{notification && (
 					<div className="fixed right-4 top-4 z-60 w-[calc(100%-2rem)] max-w-sm md:w-full">

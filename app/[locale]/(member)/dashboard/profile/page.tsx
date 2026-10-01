@@ -9,6 +9,7 @@ import { getCurrentUser, updateUserProfile, logout } from '@/lib/auth'
 import supabase from '@/lib/supabaseClient'
 import { User } from '@/lib/types'
 import PageLoading from '@/components/general/PageLoading'
+import SiteHeader from '@/components/general/SiteHeader'
 
 interface ProfilePageProps {
   params: Promise<{ locale: string }>
@@ -108,7 +109,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   }
 
   if (loading) {
-    return <PageLoading />
+    return (
+      <div className="min-h-screen flex flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 text-white md:pb-0">
+        <SiteHeader locale={locale} />
+        <PageLoading className="min-h-0 flex-1" />
+      </div>
+    )
   }
 
   const categoryLabel = accountCategory === 'pro_max'
@@ -117,15 +123,16 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       ? 'PRO'
       : 'FREE'
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <div className="min-h-screen flex flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 pb-24 text-white md:pb-0">
+      <SiteHeader locale={locale} />
+      <main className="py-8">
+        <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-6">
           <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">{'<-'} Back</a>
         </div>
 
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold">Profile Settings</h1>
-          <p className="text-gray-300 mt-1">Manage your account details and category. Every tier earns the same reward per task; higher tiers allow more tasks per day.</p>
         </div>
 
         {message && (
@@ -194,7 +201,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm mb-1">Email</p>
-                  <p className="text-lg font-medium break-all">{user?.email}</p>
+                  <p className="text-lg font-medium break-all">-</p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm mb-1">Phone</p>
@@ -212,10 +219,9 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
           <div className="space-y-6">
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-              <h2 className="text-xl font-bold mb-4">Current Account Category</h2>
+              <h2 className="text-xl font-bold mb-4">Account Category</h2>
               <div className="space-y-3">
                 <div>
-                  <p className="text-gray-400 text-sm mb-1">Account Category</p>
                   <p className="text-2xl font-bold text-blue-400">{categoryLabel}</p>
                 </div>
                 <a
@@ -237,7 +243,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }

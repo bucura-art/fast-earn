@@ -5,14 +5,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { registerUser } from '@/lib/auth'
 
-interface RegisterModalProps {
+interface RegisterFormProps {
   locale: string
-  isOpen: boolean
-  onClose: () => void
   refCode: string | null | undefined
 }
 
-export default function RegisterModal({ locale, isOpen, onClose, refCode }: RegisterModalProps) {
+export default function RegisterForm({ locale, refCode }: RegisterFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,7 +65,6 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
         deviceFingerprint,
         refCode || undefined
       )
-      onClose()
       router.push(`/${locale}/checkpoint`)
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.')
@@ -76,38 +73,12 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900 rounded-xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
-        <div className="p-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-3xl font-extrabold text-white">Create Account</h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
-              aria-label="Close"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+    <div className="bg-slate-900 rounded-xl shadow-2xl max-w-md w-full">
+      <div className="p-8">
+        <h1 className="text-3xl font-extrabold text-white mb-6">Create Account</h1>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="fullName" className="block text-base font-medium text-white/90">
                 Name
@@ -183,18 +154,17 @@ export default function RegisterModal({ locale, isOpen, onClose, refCode }: Regi
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
-          </form>
+        </form>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
-            Already have an account?{' '}
-            <button
-              onClick={onClose}
-              className="text-blue-400 hover:text-blue-300 font-medium"
-            >
-              Sign in
-            </button>
-          </p>
-        </div>
+        <p className="text-center text-sm text-gray-400 mt-6">
+          Already have an account?{' '}
+          <Link
+            href={`/${locale}/auth?mode=login${refCode ? `&ref=${encodeURIComponent(refCode)}` : ''}`}
+            className="text-blue-400 hover:text-blue-300 font-medium"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )

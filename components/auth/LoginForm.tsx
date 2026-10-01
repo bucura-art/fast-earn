@@ -6,13 +6,12 @@ import { useRouter } from 'next/navigation'
 import { loginUser, getCurrentUser } from '@/lib/auth'
 import { isUserAdmin } from '@/lib/admin'
 
-interface LoginModalProps {
+interface LoginFormProps {
   locale: string
-  isOpen: boolean
-  onClose: () => void
+  refCode?: string
 }
 
-export default function LoginModal({ locale, isOpen, onClose }: LoginModalProps) {
+export default function LoginForm({ locale, refCode }: LoginFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +34,6 @@ export default function LoginModal({ locale, isOpen, onClose }: LoginModalProps)
     try {
       const { user } = await loginUser(formData.phone, formData.password)
       const admin = user?.id ? await isUserAdmin(user.id) : false
-      onClose()
       if (admin) {
         router.push(`/${locale}/admin`)
         return
@@ -58,38 +56,12 @@ export default function LoginModal({ locale, isOpen, onClose }: LoginModalProps)
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900 rounded-xl shadow-2xl max-w-md w-full max-h-screen overflow-y-auto">
-        <div className="p-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h2 className="text-3xl font-extrabold text-white">Login Account</h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
-              aria-label="Close"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+    <div className="bg-slate-900 rounded-xl shadow-2xl max-w-md w-full">
+      <div className="p-8">
+        <h1 className="text-3xl font-extrabold text-white mb-6">Login Account</h1>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="phone" className="block text-base font-medium text-white/90">
                 Phone number
@@ -148,18 +120,17 @@ export default function LoginModal({ locale, isOpen, onClose }: LoginModalProps)
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </form>
+        </form>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
-            Don&apos;t have an account?{' '}
-            <button
-              onClick={onClose}
-              className="text-blue-400 hover:text-blue-300 font-medium"
-            >
-              Sign up
-            </button>
-          </p>
-        </div>
+        <p className="text-center text-sm text-gray-400 mt-6">
+          Don&apos;t have an account?{' '}
+          <Link
+            href={`/${locale}/auth?mode=register${refCode ? `&ref=${encodeURIComponent(refCode)}` : ''}`}
+            className="text-blue-400 hover:text-blue-300 font-medium"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   )
