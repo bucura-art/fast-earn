@@ -75,7 +75,7 @@ export default function ReferralLeaderboard({ isOpen, onClose, currentUserId }: 
             <div className="p-2 bg-emerald-500/20 rounded-lg">
               <Trophy className="w-6 h-6 text-emerald-400" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Referral Leaderboard</h2>
+            <h2 className="text-2xl font-bold text-white">Leaderboard</h2>
           </div>
           <button
             onClick={onClose}

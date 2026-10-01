@@ -48,7 +48,7 @@ export async function getUserSubscription(userId: string) {
 
   const { data, error } = await supabase
     .from('subscriptions')
-    .select('*, tier:tier_id(name, reward_multiplier)')
+    .select('*, tier:tier_id(name)')
     .eq('user_id', userId)
     .eq('status', 'active')
     .single()
@@ -59,19 +59,6 @@ export async function getUserSubscription(userId: string) {
   }
 
   return data || null
-}
-
-/**
- * Get tier multiplier for reward calculation
- * @param tier - User tier
- */
-export function getTierMultiplier(tier: UserTier): number {
-  const multipliers: Record<UserTier, number> = {
-    free: 1.0,
-    pro: 2.0,
-    pro_max: 3.0,
-  }
-  return multipliers[tier] || 1.0
 }
 
 /**
@@ -88,14 +75,12 @@ export function getTierFeatures(tier: UserTier) {
     ],
     pro: [
       'Everything in Free',
-      '2.0x reward multiplier',
       'Withdrawal limit: 500,000 RWF',
       'Priority support',
       'Task limit: 10 per day',
     ],
     pro_max: [
       'Everything in Pro',
-      '3.0x reward multiplier',
       'Withdrawal limit: unlimited',
       'Exclusive high-value tasks',
       'VIP support',
@@ -200,4 +185,3 @@ export async function checkAndHandleSubscriptionExpiry(
     return false
   }
 }
-

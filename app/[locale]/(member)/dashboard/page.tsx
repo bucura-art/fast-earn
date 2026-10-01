@@ -2,39 +2,66 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Copy, Wallet, Users, Target, Trophy } from 'lucide-react'
+import { Eye, EyeOff, Copy, Users, Trophy, Gift, CalendarCheck, CheckSquare, PlayCircle, CheckCircle2, Circle } from 'lucide-react'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
-import { getBalance, getWalletTransactions } from '@/lib/reward'
 import { getTodayTaskCount } from '@/lib/tasks'
 import { getDailyTaskLimit, getUserSubscription, getTierNameFromSubscription } from '@/lib/subscription'
-import { User, WalletTransaction } from '@/lib/types'
+import { User } from '@/lib/types'
 import CopyButton from '@/components/general/CopyButton'
 import LanguageSwitcher from '@/components/general/LanguageSwitcher'
 import PageLoading from '@/components/general/PageLoading'
 import SiteHeader from '@/components/general/SiteHeader'
 import ReferralLeaderboard from '@/components/dashboard/ReferralLeaderboard'
-import supabase from '@/lib/supabaseClient'
 import { generateReferralLink } from '@/lib/referral'
+import supabase from '@/lib/supabaseClient'
+import { getCheckInStatus } from '@/lib/checkIn'
 
 interface DashboardPageProps {
   params: Promise<{ locale: string }>
 }
+
+const incomeSources = [
+  { key: 'bonus_income', label: 'Bonus', icon: Gift, color: 'text-amber-400' },
+  { key: 'referral_income', label: 'Referral', icon: Users, color: 'text-purple-400' },
+  { key: 'check_in_income', label: 'Check-in', icon: CalendarCheck, color: 'text-cyan-400' },
+  { key: 'task_income', label: 'Tasks', icon: CheckSquare, color: 'text-emerald-400' },
+  { key: 'video_income', label: 'Videos', icon: PlayCircle, color: 'text-rose-400' },
+] as const
+
+interface IncomeBreakdown {
+  total_income: number
+  bonus_income: number
+  referral_income: number
+  check_in_income: number
+  task_income: number
+  video_income: number
+}
+
+const emptyIncomeBreakdown: IncomeBreakdown = {
+  total_income: 0,
+  bonus_income: 0,
+  referral_income: 0,
+  check_in_income: 0,
+  task_income: 0,
+  video_income: 0,
+}
+
+const todayVideoCount = 0
 
 export default function DashboardPage({ params }: DashboardPageProps) {
   const { locale } = use(params)
   const router = useRouter()
   const { user: authUser, isProtected } = useProtectedRoute()
   const [user, setUser] = useState<User | null>(null)
-  const [balance, setBalance] = useState(0)
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([])
+  const [incomeBreakdown, setIncomeBreakdown] = useState<IncomeBreakdown | null>(null)
   const [hideBalance, setHideBalance] = useState(false)
   const [showLanguageSwitcher, setShowLanguageSwitcher] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [redirecting, setRedirecting] = useState(false)
   const [dailyLimit, setDailyLimit] = useState(5)
   const [todayCount, setTodayCount] = useState(0)
+  const [checkedInToday, setCheckedInToday] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (!isProtected) return
@@ -51,32 +78,32 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         setUser(currentUser)
 
         if (currentUser) {
+          try {
+            const checkInStatus = await getCheckInStatus()
+            setCheckedInToday(checkInStatus.checkedIn)
+          } catch (error) {
+            console.error('Error loading dashboard check-in status:', error)
+          }
+
           const [subscription, tierData] = await Promise.all([
             getUserSubscription(currentUser.id),
             currentUser.tier_id ? supabase.from('tiers').select('name').eq('id', currentUser.tier_id).maybeSingle() : Promise.resolve({ data: null })
           ])
 
-          const tierName = (tierData.data?.name as any) || getTierNameFromSubscription(subscription)
-          if (tierName === 'free') {
-            setRedirecting(true)
-            router.replace(`/${locale}/pricing`)
-            return
-          }
+          const tierName = tierData.data?.name || getTierNameFromSubscription(subscription)
 
-          const [userBalance, recentTransactions, todayCountVal] = await Promise.all([
-            getBalance(currentUser.id),
-            getWalletTransactions(currentUser.id, 10),
+          const [todayCountValue, incomeResult] = await Promise.all([
             getTodayTaskCount(currentUser.id),
+            supabase.rpc('get_user_income_breakdown'),
           ])
 
-          setBalance(userBalance)
-          setTransactions(recentTransactions)
-          setTodayCount(todayCountVal)
-
+          setTodayCount(todayCountValue)
           setDailyLimit(getDailyTaskLimit(tierName))
-
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Dashboard loaded:', { tierName, limit: getDailyTaskLimit(tierName), subscription })
+          if (incomeResult.error) {
+            console.error('Error loading income breakdown:', incomeResult.error)
+          } else {
+            const incomeValues = Array.isArray(incomeResult.data) ? incomeResult.data[0] : incomeResult.data
+            setIncomeBreakdown(incomeValues || emptyIncomeBreakdown)
           }
         }
       } catch (error) {
@@ -89,7 +116,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     loadUserData()
   }, [isProtected, locale, router])
 
-  if (!isProtected || loading || redirecting) {
+  if (!isProtected || loading) {
     return (
       <div className="flex min-h-screen flex-col bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 text-white">
         <SiteHeader locale={locale} onChangeLanguage={() => setShowLanguageSwitcher(true)} />
@@ -103,75 +130,125 @@ export default function DashboardPage({ params }: DashboardPageProps) {
       <SiteHeader locale={locale} onChangeLanguage={() => setShowLanguageSwitcher(true)} />
 
       <div className="container mx-auto px-4 py-8">
-        <h1 className="mb-8 text-4xl font-bold">Dashboard</h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-4xl font-bold">Dashboard</h1>
+          <button
+            type="button"
+            className="rounded bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-500"
+          >
+            All-Time
+          </button>
+        </div>
 
 
-        {/* Balance */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        {/* Income */}
+        <div className="mb-8">
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10 relative">
-            <div className="flex justify-between items-start">
+            <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Wallet className="text-blue-400" size={18} />
-                  <p className="text-gray-400 text-sm">Balance</p>
+                  <p className="text-gray-400 text-sm">Total Income</p>
                 </div>
-                <p className="text-3xl font-bold">{hideBalance ? '••••••' : `${balance.toLocaleString()} RWF`}</p>
+                <p className="text-3xl font-bold">
+                  {hideBalance
+                    ? '••••••'
+                    : incomeBreakdown
+                      ? `${Number(incomeBreakdown.total_income).toLocaleString()} RWF`
+                      : '—'}
+                </p>
               </div>
               <button
                 onClick={() => setHideBalance((s) => !s)}
                 className="ml-4 text-gray-300 hover:text-white transition-colors"
-                aria-label="Toggle balance visibility"
+                aria-label="Toggle income visibility"
               >
                 {hideBalance ? <Eye size={25} /> : <EyeOff size={20} />}
               </button>
             </div>
+
+            <div className="mt-6 border-t border-white/10 pt-5">
+              <h2 className="mb-4 text-sm font-semibold tracking-wider text-gray-400">Income sources</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {incomeSources.map(({ key, label, icon: Icon, color }) => (
+                  <div key={label} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Icon className={color} size={18} />
+                      <span className="text-sm text-gray-300">{label}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-white">
+                      {hideBalance
+                        ? '••••'
+                        : incomeBreakdown
+                          ? `${Number(incomeBreakdown[key]).toLocaleString()} RWF`
+                          : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Users className="text-purple-400" size={18} />
-                <p className="text-gray-400 text-sm">From Referrals</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowLeaderboard(true)}
-                  className="text-blue-300 hover:text-white transition-colors"
-                  aria-label="Open leaderboard"
-                >
-                  <Trophy size={30} />
-                </button>
-                <CopyButton
-                  textToCopy={user ? generateReferralLink(user.id) : ''}
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  <Copy size={25} />
-                </CopyButton>
-              </div>
-            </div>
-            <p className="text-3xl font-bold">{(user?.referral_earnings || 0).toLocaleString()} RWF</p>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <div className="flex justify-between items-end mb-3">
-              <div className="flex items-center gap-2">
-                <Target className="text-emerald-400" size={24} />
-                <h2 className="text-xl font-bold text-white">Today Tasks</h2>
-              </div>
-              <div className="text-right">
-                <span className={`text-3xl font-bold ${todayCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>{todayCount}</span>
-                <span className="text-white/500 text-lg">/{dailyLimit}</span>
-              </div>
-            </div>
-            
-            <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-500 ${todayCount >= dailyLimit ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                style={{ width: `${Math.min(100, (todayCount / dailyLimit) * 100)}%` }}
-              />
-            </div>
-          </div>
         </div>
+
+        <section aria-labelledby="quick-actions-heading">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 id="quick-actions-heading" className="mb-4 text-sm font-semibold tracking-wider text-gray-400">Today Actions</h2>
+            <div className="grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Users className="text-purple-400" size={18} />
+                  <span className="text-sm text-gray-300">Refer</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowLeaderboard(true)}
+                    className="text-blue-300 hover:text-white transition-colors"
+                    aria-label="Open leaderboard"
+                  >
+                    <Trophy size={24} />
+                  </button>
+                  <CopyButton
+                    textToCopy={user ? generateReferralLink(user.id) : ''}
+                    className="text-gray-300 hover:text-white transition-colors"
+                  >
+                    <Copy size={20} />
+                  </CopyButton>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="text-emerald-400" size={18} />
+                  <span className="text-sm text-gray-300">Today Tasks</span>
+                </div>
+                <span className={`text-sm font-semibold ${todayCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>
+                  {todayCount} / {dailyLimit}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <PlayCircle className="text-rose-400" size={18} />
+                  <span className="text-sm text-gray-300">Today Videos</span>
+                </div>
+                <span className={`text-sm font-semibold ${todayVideoCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>
+                  {todayVideoCount} / {dailyLimit}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <CalendarCheck className="text-cyan-400" size={18} />
+                  <span className="text-sm text-gray-300">Today Check-in</span>
+                </div>
+                <div className={`flex items-center gap-2 text-sm font-semibold ${checkedInToday === null ? 'text-gray-400' : checkedInToday ? 'text-emerald-400' : 'text-amber-300'}`}>
+                  {checkedInToday === null ? <Circle size={18} /> : checkedInToday ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                  <span>{checkedInToday === null ? 'Unavailable' : checkedInToday ? 'Done' : 'Not done'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
       </div>
 

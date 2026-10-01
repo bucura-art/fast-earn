@@ -97,12 +97,10 @@ export async function startTask(
 export async function completeTask(
   completionId: string,
   userId: string,
-  taskId: string,
-  reward: number
+  taskId: string
 ): Promise<boolean> {
   try {
-    const rewardAmount = Number(reward || 0)
-    if (!completionId || !userId || !taskId || !Number.isFinite(rewardAmount) || rewardAmount <= 0) {
+    if (!completionId || !userId || !taskId) {
       return false
     }
 
@@ -123,7 +121,6 @@ export async function completeTask(
         completionId,
         userId,
         taskId,
-        reward: rewardAmount,
       }),
     })
 

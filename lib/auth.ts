@@ -24,7 +24,7 @@ export async function registerUser(
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, phone: phone.trim() } },
+      options: { data: { full_name: fullName, phone: phone.trim(), referred_by: referralCode || null } },
     })
 
     if (authError) throw authError
@@ -89,17 +89,6 @@ export async function registerUser(
     })
 
     if (subError) throw subError
-
-    // Track referral if referral code provided
-    if (referralCode) {
-      try {
-        const { trackReferralSignup } = await import('./referral')
-        await trackReferralSignup(referralCode, authData.user.id)
-      } catch (e) {
-        console.warn('Error tracking referral:', e)
-        // Non-fatal: continue with signup even if referral tracking fails
-      }
-    }
 
     // Attempt to sign the user in immediately after signup so they have a session
     try {

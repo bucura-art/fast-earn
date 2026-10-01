@@ -116,12 +116,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     : accountCategory === 'pro'
       ? 'PRO'
       : 'FREE'
-  const rewardMultiplier = accountCategory === 'pro'
-    ? '2.0x'
-    : accountCategory === 'pro_max'
-      ? '3.0x'
-      : '1.0x'
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -131,7 +125,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold">Profile Settings</h1>
-          <p className="text-gray-300 mt-1">Manage your account details and category.</p>
+          <p className="text-gray-300 mt-1">Manage your account details and category. Every tier earns the same reward per task; higher tiers allow more tasks per day.</p>
         </div>
 
         {message && (
@@ -224,19 +218,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                   <p className="text-gray-400 text-sm mb-1">Account Category</p>
                   <p className="text-2xl font-bold text-blue-400">{categoryLabel}</p>
                 </div>
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Reward Multiplier</p>
-                  <p className="text-lg font-medium">{rewardMultiplier}</p>
-                </div>
                 <a
                   href={`/${locale}/pricing`}
                   className="inline-block mt-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors"
                 >
                   Upgrade account
                 </a>
-                <p className="text-sm text-emerald-300 font-medium">
-                  Get 3x reward multiplier with Pro Max account.
-                </p>
               </div>
             </div>
 

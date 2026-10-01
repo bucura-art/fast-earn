@@ -97,7 +97,7 @@ export default function PricingPage({ params }: PageProps) {
                 <span className="text-green-400 mr-3">✓</span> 10 Videos <span className="text-lg font-normal text-gray-400">/Day</span>
               </li>
               <li className="flex items-center text-white">
-                <span className="text-green-400 mr-3">✓</span> 3,000 Bonus <span className="text-lg font-normal text-gray-400">/Referall</span>
+                <span className="text-green-400 mr-3">✓</span> 3,000 RWF per referral <span className="text-lg font-normal text-gray-400">/signup</span>
               </li>
             </ul>
             <PricingPlanCta plan="pro" locale={locale} currentUserTier={currentUserTier} tierLoading={tierLoading} className="block w-full py-3 px-6 text-center rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-colors shadow-lg disabled:opacity-60">
@@ -118,7 +118,7 @@ export default function PricingPage({ params }: PageProps) {
                 <span className="text-purple-400 mr-3">✓</span> 20 Videos <span className="text-lg font-normal text-gray-400">/Day</span>
               </li>
               <li className="flex items-center text-gray-300">
-                <span className="text-purple-400 mr-3">✓</span> 6,000 Bonus <span className="text-lg font-normal text-gray-400">/Referall</span>
+                <span className="text-purple-400 mr-3">✓</span> 3,000 RWF per referral <span className="text-lg font-normal text-gray-400">/signup</span>
               </li>
             </ul>
             <PricingPlanCta plan="pro_max" locale={locale} currentUserTier={currentUserTier} tierLoading={tierLoading} className="block w-full py-3 px-6 text-center rounded-xl border bg-blue-600 text-white font-bold hover:bg-blue-500/10 transition-colors disabled:opacity-60">

@@ -12,7 +12,6 @@ import { calculateTaskReward } from '@/lib/reward'
 import { Task, TaskCompletion } from '@/lib/types'
 import { Play, CheckCircle2, AlertCircle, X, Lock } from 'lucide-react'
 import supabase from '@/lib/supabaseClient'
-import { TIER_MULTIPLIERS } from '@/lib/tierUtils'
 import PageLoading from '@/components/general/PageLoading'
 import SiteHeader from '@/components/general/SiteHeader'
 import SiteNav from '@/components/general/SiteNav'
@@ -181,8 +180,8 @@ export default function VideosPage({ params }: VideosPageProps) {
     if (!video) return
 
     try {
-      const reward = await calculateTaskReward(userId, video.base_reward)
-      const success = await completeTask(completionId, userId, videoId, reward)
+      const reward = calculateTaskReward(video.base_reward)
+      const success = await completeTask(completionId, userId, videoId)
 
       if (success) {
         showNotification('success', 'Video completed', `You earned ${reward} RWF.`)
@@ -294,8 +293,7 @@ export default function VideosPage({ params }: VideosPageProps) {
         {videos.length > 0 ? (
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
             {videos.map((video) => {
-              const multiplier = TIER_MULTIPLIERS[userTier as keyof typeof TIER_MULTIPLIERS] || 1.0
-              const displayReward = Math.round(video.base_reward * multiplier * 100) / 100
+              const displayReward = calculateTaskReward(video.base_reward)
               return (
               <div key={video.id} className="rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/50 transition-colors flex flex-col overflow-hidden">
                 <button
@@ -337,20 +335,11 @@ export default function VideosPage({ params }: VideosPageProps) {
                   <h3 className="text-xl font-bold mb-2 grow">{video.title}</h3>
                   <p className="text-gray-400 text-sm mb-4">{video.description}</p>
 
-                  {(video as any).is_upsell && (
-                    <div className="mb-4 p-2 bg-amber-900/20 border border-amber-500/30 rounded text-xs text-amber-200 flex items-center gap-2">
-                      <AlertCircle size={14} />
-                      You cannot complete this task on {userTier} account
-                    </div>
-                  )}
-
                   <div className="space-y-2 mb-6 pb-6 border-b border-white/10">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Reward:</span>
                       <span className="text-emerald-400 font-bold flex items-center gap-2">
                         {displayReward} RWF
-                        {userTier === 'pro' && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">2x Applied</span>}
-                        {userTier === 'pro_max' && <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30">3x Applied</span>}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -359,14 +348,10 @@ export default function VideosPage({ params }: VideosPageProps) {
                     </div>
                   </div>
 
-                  {userTier !== 'pro_max' && (
-                    <div className="space-y-2 mt-auto">
-                      <button
-                        onClick={() => router.push(`/${locale}/pricing`)}
-                        className="w-full py-3 px-4 bg-linear-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-bold rounded-lg transition-colors text-sm"
-                      >
-                        {(video as any).is_upsell ? 'Upgrade to Unlock' : 'Earn 3x'}
-                      </button>
+                  {(video as any).is_upsell && (
+                    <div className="mt-auto p-2 bg-amber-900/20 border border-amber-500/30 rounded text-xs text-amber-200 flex items-center gap-2">
+                      <AlertCircle size={14} />
+                      You need pro max account
                     </div>
                   )}
                 </div>

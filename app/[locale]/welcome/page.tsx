@@ -4,8 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { Check, Share2 } from 'lucide-react'
 
-const SHARE_MESSAGE = `🎉🎉 I won a 26,000 RWF bonus on Fast Earn! 💰
-Join me and start earning rewards!
+const SHARE_MESSAGE = `Join Fast Earn and start earning rewards!
 👇👇👇
 https://fast-earn.vercel.app/welcome`
 
@@ -28,7 +27,7 @@ export default function WelcomePage() {
 			<section className="w-full max-w-xl overflow-hidden border border-emerald-200/20 bg-slate-950/75 shadow-2xl shadow-emerald-950/40">
 				<div className="border-b border-emerald-300/20 bg-emerald-400 px-6 py-5 text-slate-950">
 					<div className="mx-auto flex max-w-md items-center justify-center">
-						<p className="text-center text-lg font-extrabold">You won 26,000 RWF bonus!</p>
+						<p className="text-center text-lg font-extrabold">Referral welcome bonus</p>
 					</div>
 				</div>
 
@@ -36,8 +35,8 @@ export default function WelcomePage() {
 					<div className="relative mx-auto mb-6 h-20 w-32">
 						<Image src="/images/dollar-notes.png" alt="Dollar notes" fill sizes="128px" className="object-contain" />
 					</div>
-					<h1 className="text-3xl font-black sm:text-4xl">Share in 5 groups to win more</h1>
-					<p className="mt-3 text-base font-medium text-slate-300">Earn 3,000 RWF for every referral.</p>
+					<h1 className="text-3xl font-black sm:text-4xl">Invite friends to join Fast Earn</h1>
+					<p className="mt-3 text-base font-medium text-slate-300">Earn a one-time 3,000 RWF when a friend registers with your referral link. They receive a 6,000 RWF welcome bonus.</p>
 
 					<div className="mt-9 text-left">
 						<div role="progressbar" aria-label="Groups shared" aria-valuemin={0} aria-valuemax={5} aria-valuenow={shares} className="h-3 overflow-hidden rounded-full bg-white/10">
@@ -58,7 +57,7 @@ export default function WelcomePage() {
 					</button>
 				</div>
 			</section>
-			<button type="button" onClick={() => window.location.assign('https://kandebe.com')} disabled={shares < 5} className="mt-4 inline-flex min-h-12 w-full max-w-xl items-center justify-center rounded-sm bg-blue-600 px-6 py-3 font-extrabold text-white transition-colors hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
+			<button type="button" onClick={() => window.location.assign('https://example.com')} disabled={shares < 5} className="mt-4 inline-flex min-h-12 w-full max-w-xl items-center justify-center rounded-sm bg-blue-600 px-6 py-3 font-extrabold text-white transition-colors hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400">
 				Continue
 			</button>
 		</main>

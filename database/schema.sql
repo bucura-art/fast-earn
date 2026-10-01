@@ -5,16 +5,15 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE tiers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT UNIQUE NOT NULL,
-    reward_multiplier NUMERIC NOT NULL,
     monthly_price NUMERIC DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO tiers (name, reward_multiplier, monthly_price)
+INSERT INTO tiers (name, monthly_price)
 VALUES
-('free', 1.0, 0),
-('pro', 2.0, 6000),
-('pro_max', 3.0, 12000);
+('free', 0),
+('pro', 6000),
+('pro_max', 12000);
 
 -- USERS (Updated with role, admin fields, and referral tracking)✅DONE
 CREATE TABLE users (
@@ -80,6 +79,16 @@ CREATE TABLE wallet_transactions (
     reference_type TEXT,
     reference_id UUID,
     created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- DAILY CHECK-INS
+CREATE TABLE IF NOT EXISTS check_ins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    check_in_date DATE NOT NULL,
+    reward_amount NUMERIC NOT NULL DEFAULT 50 CHECK (reward_amount = 50),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, check_in_date)
 );
 
 -- WITHDRAWALS ✅DONE
@@ -262,6 +271,13 @@ CREATE POLICY "Users can view their wallet transactions" ON wallet_transactions
 CREATE POLICY "Service/Admin can insert transactions" ON wallet_transactions
     FOR INSERT
     WITH CHECK (user_id IS NOT NULL AND (user_id = auth.uid() OR get_is_admin()));
+
+-- Check-ins are recorded and credited only through the service-only RPC below.
+ALTER TABLE check_ins ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their own check-ins" ON check_ins;
+CREATE POLICY "Users can view their own check-ins" ON check_ins
+    FOR SELECT
+    USING (user_id = auth.uid() OR get_is_admin());
 
 -- Withdrawals
 ALTER TABLE withdrawals ENABLE ROW LEVEL SECURITY;
@@ -489,29 +505,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Auto-sync new users from auth.users to public.users ✅DONE
-CREATE OR REPLACE FUNCTION sync_user_to_public()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Insert into public.users if not already present
-    INSERT INTO public.users (id, email, full_name, role, is_verified, created_at)
-    VALUES (
-        NEW.id,
-        NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-        'user',
-        (NEW.raw_user_meta_data->>'is_verified')::BOOLEAN,
-        NEW.created_at
-    )
-    ON CONFLICT (email) DO UPDATE SET
-        full_name = COALESCE(public.users.full_name, NEW.raw_user_meta_data->>'full_name'),
-        is_verified = COALESCE((NEW.raw_user_meta_data->>'is_verified')::BOOLEAN, public.users.is_verified)
-    WHERE public.users.id = NEW.id;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 -- Attach to tables that have an `updated_at` column ✅DONE
 DO $$
 BEGIN
@@ -561,30 +554,43 @@ EXECUTE FUNCTION update_task_completion_count();
 DROP TRIGGER IF EXISTS trg_sync_user_to_public ON auth.users;
 
 CREATE OR REPLACE FUNCTION sync_user_to_public()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $sync_user_to_public$
 DECLARE
     v_full_name TEXT;
     v_phone TEXT;
+    v_referred_by UUID;
     v_is_verified BOOLEAN := FALSE;
 BEGIN
     v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', '');
     v_phone := NULLIF(BTRIM(NEW.raw_user_meta_data->>'phone'), '');
+    BEGIN
+        v_referred_by := NULLIF(BTRIM(NEW.raw_user_meta_data->>'referred_by'), '')::UUID;
+    EXCEPTION WHEN invalid_text_representation THEN
+        v_referred_by := NULL;
+    END;
+
+    IF v_referred_by = NEW.id OR NOT EXISTS (
+        SELECT 1 FROM public.users WHERE id = v_referred_by
+    ) THEN
+        v_referred_by := NULL;
+    END IF;
+
     IF NEW.raw_user_meta_data ? 'is_verified' THEN
         v_is_verified := (NEW.raw_user_meta_data->>'is_verified')::BOOLEAN;
     END IF;
 
-    -- Auto-verify all gmail accounts on signup
-    IF NEW.email LIKE '%@gmail.com' THEN
-        v_is_verified := TRUE;
-    END IF;
-
     -- Insert or update profile in public.users using the auth user's id
-    INSERT INTO public.users (id, email, full_name, phone, role, is_verified, created_at)
+    INSERT INTO public.users (id, email, full_name, phone, referred_by, role, is_verified, created_at)
     VALUES (
         NEW.id,
         NEW.email,
         v_full_name,
         v_phone,
+        v_referred_by,
         'user',
         v_is_verified,
         NEW.created_at
@@ -598,12 +604,71 @@ BEGIN
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$sync_user_to_public$;
 
 -- Recreate the trigger so it runs after auth user inserts
 CREATE TRIGGER trg_sync_user_to_public
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION sync_user_to_public();
+
+-- Credit fixed signup bonuses once when a referred profile is first created.
+CREATE OR REPLACE FUNCTION award_signup_referral_bonus()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_referral_id UUID;
+BEGIN
+    IF NEW.referred_by IS NULL OR NEW.referred_by = NEW.id THEN
+        RETURN NEW;
+    END IF;
+
+    INSERT INTO public.referrals (
+        referrer_id,
+        referred_user_id,
+        reward,
+        reward_tier_bonus,
+        is_claimed,
+        claimed_at,
+        reference_type
+    )
+    VALUES (
+        NEW.referred_by,
+        NEW.id,
+        3000,
+        0,
+        TRUE,
+        NOW(),
+        'referral_signup'
+    )
+    ON CONFLICT (referrer_id, referred_user_id) DO NOTHING
+    RETURNING id INTO v_referral_id;
+
+    IF v_referral_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    UPDATE public.users
+    SET balance = COALESCE(balance, 0) + 6000
+    WHERE id = NEW.id;
+
+    UPDATE public.users
+    SET
+        balance = COALESCE(balance, 0) + 3000,
+        referral_earnings = COALESCE(referral_earnings, 0) + 3000
+    WHERE id = NEW.referred_by;
+
+    INSERT INTO public.wallet_transactions (user_id, type, amount, reference_type, reference_id)
+    VALUES
+        (NEW.id, 'credit', 6000, 'welcome_bonus', v_referral_id),
+        (NEW.referred_by, 'credit', 3000, 'referral_bonus', v_referral_id);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
+DROP TRIGGER IF EXISTS trg_award_signup_referral_bonus ON public.users;
+CREATE TRIGGER trg_award_signup_referral_bonus
+    AFTER INSERT ON public.users
+    FOR EACH ROW EXECUTE FUNCTION award_signup_referral_bonus();
 
 -- =========================================
 -- Indexes
@@ -827,3 +892,100 @@ BEGIN
     RETURN COALESCE(min_amount, 5000);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Aggregate a user's lifetime credited income by earning source.
+CREATE OR REPLACE FUNCTION public.get_user_income_breakdown()
+RETURNS TABLE (
+    total_income NUMERIC,
+    bonus_income NUMERIC,
+    referral_income NUMERIC,
+    check_in_income NUMERIC,
+    task_income NUMERIC,
+    video_income NUMERIC
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+    SELECT
+        COALESCE(SUM(wt.amount), 0),
+        COALESCE(SUM(wt.amount) FILTER (WHERE wt.reference_type IN ('welcome_bonus', 'bonus')), 0),
+        COALESCE(SUM(wt.amount) FILTER (WHERE wt.reference_type = 'referral_bonus'), 0),
+        COALESCE(SUM(wt.amount) FILTER (WHERE wt.reference_type = 'check_in'), 0),
+        COALESCE(SUM(wt.amount) FILTER (
+            WHERE wt.reference_type = 'task_completion'
+              AND tc.id IS NOT NULL
+              AND t.category IS DISTINCT FROM 'video'
+        ), 0),
+        COALESCE(SUM(wt.amount) FILTER (
+            WHERE wt.reference_type = 'task_completion'
+              AND tc.id IS NOT NULL
+              AND t.category = 'video'
+        ), 0)
+    FROM public.wallet_transactions AS wt
+    LEFT JOIN public.task_completions AS tc
+        ON wt.reference_type = 'task_completion'
+       AND tc.id = wt.reference_id
+       AND tc.user_id = wt.user_id
+    LEFT JOIN public.tasks AS t ON t.id = tc.task_id
+    WHERE wt.user_id = auth.uid()
+      AND wt.type = 'credit';
+$$;
+
+REVOKE ALL ON FUNCTION public.get_user_income_breakdown() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_user_income_breakdown() TO authenticated;
+
+-- Atomically award one daily check-in reward per user.
+CREATE OR REPLACE FUNCTION public.complete_daily_check_in(p_user_id UUID)
+RETURNS TABLE (
+    already_checked_in BOOLEAN,
+    reward_amount NUMERIC,
+    balance_after NUMERIC
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    new_check_in_id UUID;
+    updated_balance NUMERIC;
+    today_utc DATE := (NOW() AT TIME ZONE 'UTC')::DATE;
+BEGIN
+    INSERT INTO public.check_ins (user_id, check_in_date, reward_amount)
+    VALUES (p_user_id, today_utc, 50)
+    ON CONFLICT (user_id, check_in_date) DO NOTHING
+    RETURNING id INTO new_check_in_id;
+
+    IF new_check_in_id IS NULL THEN
+        SELECT COALESCE(u.balance, 0)
+        INTO updated_balance
+        FROM public.users AS u
+        WHERE u.id = p_user_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'User not found for daily check-in';
+        END IF;
+
+        RETURN QUERY SELECT TRUE, 0::NUMERIC, updated_balance;
+        RETURN;
+    END IF;
+
+    UPDATE public.users AS u
+    SET balance = COALESCE(u.balance, 0) + 50
+    WHERE u.id = p_user_id
+    RETURNING u.balance INTO updated_balance;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'User not found for daily check-in';
+    END IF;
+
+    INSERT INTO public.wallet_transactions (user_id, type, amount, reference_type, reference_id)
+    VALUES (p_user_id, 'credit', 50, 'check_in', new_check_in_id);
+
+    RETURN QUERY SELECT FALSE, 50::NUMERIC, updated_balance;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.complete_daily_check_in(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.complete_daily_check_in(UUID) TO service_role;

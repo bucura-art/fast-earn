@@ -472,7 +472,7 @@ export async function getAllSubscriptions(limit: number = 50, offset: number = 0
   try {
     const { data, error, count } = await supabase
       .from('subscriptions')
-      .select('*, users(email, full_name), tiers(name, reward_multiplier)', { count: 'exact' })
+      .select('*, users(email, full_name), tiers(name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 

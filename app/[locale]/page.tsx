@@ -39,14 +39,13 @@ function HomeContent() {
     { quote: 'Noneho nukureba video gusa, amafranga tugiye kuyakorera kabisa', name: 'Jean', location: 'Musanze' },
     { quote: 'Kandi babimbwiraga nkagira ni scam none ntangiye kuyaryaho.', name: 'Diane', location: 'Huye' },
     { quote: 'Nkunda ko iyo ugize ikibazo bahita bagufasha, iyi platform ifite support team yihuse', name: 'Patrick', location: 'Rubavu' },
-    { quote: 'Uziko iyo ureferinze umuntu iyo yinjije nawe baguha bonus kuri buri kantu akoze, iyi fast earn ni sawa cyane kbsa.', name: 'Claudine', location: 'Rwamagana' },
   ]
 
   const faqItems = [
     { question: 'How do I get paid?', answer: 'Withdraw via Mobile Money once you reach the minimum threshold.' },
     { question: 'Is it free to join?', answer: 'Yes. The Free accountt category gives immediate access to tasks.' },
     { question: 'How long does withdrawal take?', answer: 'Most withdrawals are processed quickly after review.' },
-    { question: 'Do referrals really earn money?', answer: 'Yes. You earn referral bonuses on tasks invited users complete.' },
+    { question: 'Do referrals really earn money?', answer: 'Yes. You earn 3,000 RWF when someone you refer registers, and they receive a 6,000 RWF welcome bonus.' },
     { question: 'Can I upgrade my account category later?', answer: 'Yes. You can upgrade to Pro or Pro Max anytime from your dashboard.' },
   ]
 

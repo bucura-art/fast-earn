@@ -11,7 +11,7 @@ import PageLoading from '@/components/general/PageLoading'
 import SiteHeader from '@/components/general/SiteHeader'
 import { getUserSubscription, getDailyTaskLimit, getTierNameFromSubscription } from '@/lib/subscription'
 import { Task } from '@/lib/types'
-import { AlertCircle, CheckCircle2, Clock3, X, Lock, Eye, Share2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Clock3, X, Eye, Share2 } from 'lucide-react'
 import CopyButton from '@/components/general/CopyButton'
 import supabase from '@/lib/supabaseClient'
 import TikTokTaskCard from '@/components/tasks/TikTokTaskCard'
@@ -264,8 +264,8 @@ export default function TasksPage({ params }: TasksPageProps) {
           throw new Error('Task not found')
         }
 
-        const reward = await calculateTaskReward(userId, task.base_reward)
-        const success = await completeTask(completionId, userId, taskId, reward)
+        const reward = calculateTaskReward(task.base_reward)
+        const success = await completeTask(completionId, userId, taskId)
 
         if (!success) {
           throw new Error('Completion failed')
@@ -320,14 +320,7 @@ export default function TasksPage({ params }: TasksPageProps) {
 
     // Restricted Task Logic
     if ((task as any).is_upsell) {
-      return (
-        <button
-          onClick={() => router.push(`/${locale}/pricing`)}
-          className="w-full py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          <Lock size={14} /> Upgrade to Unlock
-        </button>
-      )
+      return null
     }
 
     let label: React.ReactNode = getButtonLabel(task.category)
@@ -492,14 +485,6 @@ export default function TasksPage({ params }: TasksPageProps) {
           </div>
         )}
 
-        {hasPendingTasks && (
-          <div className="mb-6 p-4 bg-blue-600/10 border border-blue-400/30">
-            <p className="text-blue-200 text-sm">
-              Some tasks require verification. Rewards will be credited automatically after we confirm the action was completed.
-            </p>
-          </div>
-        )}
-
         <div className="mb-6 p-4 bg-blue-600/10 border border-blue-400/30 rounded-lg flex justify-between items-center">
           <div>
             <p className="text-white text-xl font-bold">Daily Limit</p>
@@ -546,12 +531,12 @@ export default function TasksPage({ params }: TasksPageProps) {
                 </div>
 
                 <h3 className="text-xl font-bold mb-2 grow">Referral Program</h3>
-                <p className="text-gray-200 text-base mb-4">Invite friends and earn 5-20% bonuses on the tasks they complete.</p>
+                <p className="text-gray-200 text-base mb-4">Invite a friend and earn 3,000 RWF when they register. They receive a 6,000 RWF welcome bonus.</p>
 
                 <div className="space-y-2 mb-6 pb-6 border-b border-white/10">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Reward:</span>
-                    <span className="text-emerald-400 font-bold">5-20% Bonus</span>
+                    <span className="text-emerald-400 font-bold">3,000 RWF</span>
                   </div>
                 </div>
 
@@ -575,7 +560,7 @@ export default function TasksPage({ params }: TasksPageProps) {
             )}
 
             {tasks.map((task) => {
-              const reward = task.base_reward * (userTier === 'pro' ? 2 : userTier === 'pro_max' ? 3 : 1)
+              const reward = calculateTaskReward(task.base_reward)
               
               if (task.category === 'follow' && task.external_url?.includes('tiktok.com')) {
                 return <TikTokTaskCard key={task.id} task={task} reward={reward} actionButton={renderActionButton(task)} />
@@ -617,7 +602,7 @@ export default function TasksPage({ params }: TasksPageProps) {
             <p className="text-gray-400 text-lg">No available tasks at the moment</p>
             <p className="text-gray-500 text-sm mb-6">Check back later for new opportunities</p>
             <a
-              href={`/${locale}/dashboard/videos`}
+              href={`/${locale}/workspace/videos`}
               className="inline-block py-2 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg"
             >
               Watch Videos Instead

@@ -61,9 +61,10 @@ export default async function TermsPage({ params }: PageProps) {
               FastEarn offers multiple subscription tiers with varying benefits:
             </p>
             <ul className="list-disc list-inside space-y-2 text-gray-300">
-              <li>Free: 5 tasks per day, 1x reward multiplier</li>
-              <li>Pro: 10 tasks per day, 2x reward multiplier, valid for 30 days from activation</li>
-              <li>Pro Max: 20 tasks per day, 3x reward multiplier, valid for 30 days from activation</li>
+              <li>All tiers receive the same reward for completing a task.</li>
+              <li>Free: up to 5 tasks per day</li>
+              <li>Pro: up to 10 tasks per day, valid for 30 days from activation</li>
+              <li>Pro Max: up to 20 tasks per day, valid for 30 days from activation</li>
               <li>Subscriptions automatically expire after 30 days and revert to Free tier</li>
               <li>Paid subscriptions are non-refundable once activated</li>
             </ul>

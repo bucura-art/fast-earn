@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { TIER_MULTIPLIERS } from '@/lib/tierUtils'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -12,12 +11,6 @@ if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
 
 const supabase = createClient(supabaseUrl, serviceRoleKey)
 const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey)
-
-const REFERRAL_BONUS_BY_TIER: Record<string, number> = {
-  free: 0.05,
-  pro: 0.10,
-  pro_max: 0.20,
-}
 
 const DAILY_TASK_LIMITS: Record<string, number> = {
   free: 5,
@@ -32,10 +25,10 @@ const parseBearerToken = (request: NextRequest): string | null => {
 }
 
 const getTierName = async (userId: string): Promise<string> => {
-  // Try active subscription first (with full tier data including multiplier)
+  // Try active subscription first
   const { data: subData, error: subError } = await supabase
     .from('subscriptions')
-    .select('*, tier:tier_id(id, name, reward_multiplier)')
+    .select('*, tier:tier_id(id, name)')
     .eq('user_id', userId)
     .eq('status', 'active')
     .maybeSingle()
@@ -121,74 +114,6 @@ const getTodayTaskCount = async (userId: string): Promise<number> => {
   }
 }
 
-const creditReferralBonus = async (userId: string, rewardAmount: number) => {
-  try {
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('referred_by')
-      .eq('id', userId)
-      .single()
-
-    if (userError) throw userError
-    if (!user?.referred_by) return
-
-    const tierName = await getTierName(userId)
-    const bonusRate = REFERRAL_BONUS_BY_TIER[tierName] ?? REFERRAL_BONUS_BY_TIER.free
-    const bonusAmount = Math.round(rewardAmount * bonusRate * 100) / 100
-    if (bonusAmount <= 0) return
-
-    const { data: referral, error: referralError } = await supabase
-      .from('referrals')
-      .select('id, reward')
-      .eq('referrer_id', user.referred_by)
-      .eq('referred_user_id', userId)
-      .maybeSingle()
-
-    if (referralError || !referral) return
-
-    const nextReferralReward = Number(referral.reward || 0) + bonusAmount
-
-    const { error: updateReferralError } = await supabase
-      .from('referrals')
-      .update({ reward: nextReferralReward })
-      .eq('id', referral.id)
-
-    if (updateReferralError) throw updateReferralError
-
-    const { data: referrer, error: referrerError } = await supabase
-      .from('users')
-      .select('balance, referral_earnings')
-      .eq('id', user.referred_by)
-      .single()
-
-    if (referrerError) throw referrerError
-
-    const { error: updateReferrerError } = await supabase
-      .from('users')
-      .update({
-        balance: Number(referrer.balance || 0) + bonusAmount,
-        referral_earnings: Number(referrer.referral_earnings || 0) + bonusAmount,
-      })
-      .eq('id', user.referred_by)
-
-    if (updateReferrerError) throw updateReferrerError
-
-    const { error: referralTxError } = await supabase
-      .from('wallet_transactions')
-      .insert({
-        user_id: user.referred_by,
-        type: 'credit',
-        amount: bonusAmount,
-        reference_type: 'referral_bonus',
-        reference_id: referral.id,
-      })
-
-    if (referralTxError) throw referralTxError
-  } catch (error) {
-    console.warn('Referral bonus credit failed:', error)
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const token = parseBearerToken(request)
@@ -200,17 +125,13 @@ export async function POST(request: NextRequest) {
       completionId,
       userId,
       taskId,
-      reward,
     }: {
       completionId?: string
       userId?: string
       taskId?: string
-      reward?: number
     } = await request.json()
 
-    const requestedReward = Number(reward || 0)
-
-    if (!completionId || !userId || !taskId || !Number.isFinite(requestedReward)) {
+    if (!completionId || !userId || !taskId) {
       return NextResponse.json({ success: false, error: 'Invalid request payload' }, { status: 400 })
     }
 
@@ -267,7 +188,6 @@ export async function POST(request: NextRequest) {
 
     // Check daily task limit before allowing completion
     const tierName = await getTierName(userId)
-    console.log(`[Complete Task] User ${userId}: tier=${tierName}, requestedReward=${requestedReward}`)
     
     const dailyLimit = DAILY_TASK_LIMITS[tierName] || DAILY_TASK_LIMITS.free
     const todayCount = await getTodayTaskCount(userId)
@@ -294,16 +214,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Task is unavailable' }, { status: 400 })
     }
 
-    // Calculate the correct reward based on user's tier
-    const multiplier = TIER_MULTIPLIERS[tierName as keyof typeof TIER_MULTIPLIERS] || TIER_MULTIPLIERS.free
-    const correctRewardAmount = Math.round(Number(task.base_reward || 0) * multiplier * 100) / 100
-    console.log(`[Complete Task] Task ${taskId}: baseReward=${task.base_reward}, multiplier=${multiplier}, correctAmount=${correctRewardAmount}`)
+    const correctRewardAmount = Math.round(Number(task.base_reward || 0) * 100) / 100
+    console.log(`[Complete Task] Task ${taskId}: baseReward=${task.base_reward}, creditAmount=${correctRewardAmount}`)
     
     if (correctRewardAmount <= 0) {
       return NextResponse.json({ success: false, error: 'Invalid reward amount' }, { status: 400 })
     }
 
-    // Use the calculated reward (not the one from frontend to avoid manipulation)
+    // Credit the task's configured base reward, regardless of the user's tier.
     const rewardToCredit = correctRewardAmount
 
     const remainingBudget = Number(task.remaining_budget || 0)
@@ -369,8 +287,6 @@ export async function POST(request: NextRequest) {
       .eq('id', userId)
 
     if (updateUserError) throw updateUserError
-
-    await creditReferralBonus(userId, rewardToCredit)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
