@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BriefcaseBusiness, LayoutDashboard, Wallet } from 'lucide-react'
+import { BriefcaseBusiness, LayoutDashboard, TrendingUp, Wallet } from 'lucide-react'
 
 interface SiteNavProps {
 	locale: string
@@ -14,6 +14,7 @@ export default function SiteNav({ locale, showDesktopLinks = false }: SiteNavPro
 	const links = [
 		{ label: 'Dashboard', href: `/${locale}/dashboard`, icon: LayoutDashboard },
 		{ label: 'Workspace', href: `/${locale}/workspace`, icon: BriefcaseBusiness },
+		{ label: 'Invest', href: `/${locale}/invest`, icon: TrendingUp },
 		{ label: 'Wallet', href: `/${locale}/wallet`, icon: Wallet },
 	]
 
@@ -41,7 +42,7 @@ export default function SiteNav({ locale, showDesktopLinks = false }: SiteNavPro
 
 			<nav
 				aria-label="Main navigation"
-				className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-white/15 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-8px_24px_rgba(0,0,0,0.25)] backdrop-blur md:hidden"
+				className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/15 bg-slate-950/95 pb-[env(safe-area-inset-bottom)] text-white shadow-[0_-8px_24px_rgba(0,0,0,0.25)] backdrop-blur md:hidden"
 			>
 				{links.map(({ label, href, icon: Icon }) => (
 					<Link

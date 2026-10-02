@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { FileText, Globe, Headset, MoreVertical, Settings, Shield } from 'lucide-react'
+import { FileText, Globe, Headset, MoreVertical, Settings, Shield, TrendingUp } from 'lucide-react'
 import SiteNav from '@/components/general/SiteNav'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -106,6 +106,14 @@ export default function SiteHeader({ locale, onChangeLanguage }: SiteHeaderProps
 								>
 									<Settings size={25} className="rounded bg-black p-1" />
 									<span>Account settings</span>
+								</Link>
+								<Link
+									href={`/${locale}/invest`}
+									onClick={closeMenu}
+									className="flex items-center gap-3 rounded-lg px-4 py-3 font-semibold text-white transition-colors hover:bg-white/15"
+								>
+									<TrendingUp size={25} className="rounded bg-black p-1" />
+									<span>Investment</span>
 								</Link>
 								{onChangeLanguage && (
 									<button

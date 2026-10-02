@@ -1,13 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/hooks'
 import { useState } from 'react'
 import {
   Menu,
   X,
-  LogOut,
   LayoutDashboard,
   Users,
   MessageSquare,
@@ -26,8 +25,7 @@ interface AdminLayoutProps {
 
 export default function AdminNav({ locale }: AdminLayoutProps) {
   const pathname = usePathname()
-  const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const isActive = (href: string) => {
@@ -39,24 +37,19 @@ export default function AdminNav({ locale }: AdminLayoutProps) {
   const navItems = [
     { label: 'Dashboard', href: `/${locale}/admin`, icon: LayoutDashboard },
     { label: 'Users', href: `/${locale}/admin/users`, icon: Users },
-    { label: 'Support Chats', href: `/${locale}/admin/chats`, icon: MessageSquare },
-    { label: 'Tasks', href: `/${locale}/admin/tasks`, icon: ClipboardList },
-    { label: 'Upgrades', href: `/${locale}/admin/upgrades`, icon: TrendingUp },
+    { label: 'Investors', href: `/${locale}/admin/investors`, icon: TrendingUp },
     { label: 'Withdrawals', href: `/${locale}/admin/withdrawals`, icon: CreditCard },
-    { label: 'Subscriptions', href: `/${locale}/admin/subscriptions`, icon: Star },
+    { label: 'Membership', href: `/${locale}/admin/membership`, icon: Star },
+    { label: 'Support', href: `/${locale}/admin/chats`, icon: MessageSquare },
+    { label: 'Tasks', href: `/${locale}/admin/tasks`, icon: ClipboardList },
     { label: 'Fraud Logs', href: `/${locale}/admin/fraud`, icon: ShieldAlert },
     { label: 'Settings', href: `/${locale}/admin/settings`, icon: Settings },
   ]
 
-  const handleLogout = async () => {
-    await logout()
-    router.push(`/${locale}`)
-  }
-
   return (
     <>
       {/* Mobile Top Bar */}
-      <div className="lg:hidden sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border-b border-emerald-500/30 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden sticky top-0 z-40 bg-linear-to-r from-slate-900 via-emerald-950 to-slate-900 border-b border-emerald-500/30 px-4 py-3 flex items-center justify-between">
         <Link href={`/${locale}/admin`} className="text-lg font-bold text-emerald-400 flex items-center gap-2">
           <Shield className="w-5 h-5" />
           Admin
@@ -79,19 +72,21 @@ export default function AdminNav({ locale }: AdminLayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`admin-sidebar-scroll fixed lg:sticky left-0 top-14 lg:top-0 h-[calc(100vh-56px)] lg:h-screen lg:shrink-0 w-64 bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 border-r border-emerald-500/30 overflow-y-auto transform transition-transform duration-300 z-40 ${
+        className={`admin-sidebar-scroll fixed lg:sticky left-0 top-14 lg:top-0 h-[calc(100vh-56px)] lg:h-screen lg:shrink-0 w-64 bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 border-r border-emerald-500/30 overflow-y-auto transform transition-transform duration-300 z-40 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="p-6 lg:p-4 h-full flex flex-col">
           {/* Logo - Desktop Only */}
-          <Link
-            href={`/${locale}/admin`}
-            className="hidden lg:flex items-center gap-2 text-2xl font-bold text-emerald-400 hover:text-emerald-300 transition-colors mb-8"
-          >
-            <Shield className="w-8 h-8" />
-            Admin Panel
-          </Link>
+          <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-8 bg-slate-900 px-6 pt-6 pb-3 lg:-mx-4 lg:-mt-4 lg:px-4 lg:pt-4">
+            <Link
+              href={`/${locale}/admin`}
+              className="hidden lg:flex items-center gap-2 text-2xl font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              <Shield className="w-8 h-8" />
+              Admin Panel
+            </Link>
+          </div>
 
           {/* Navigation Items */}
           <nav className="space-y-2 flex-1">
@@ -118,22 +113,21 @@ export default function AdminNav({ locale }: AdminLayoutProps) {
           <div className="my-6 border-t border-emerald-500/30" />
 
           {/* Admin Profile Section */}
-          <div className="px-4 py-4 bg-white/5 rounded-lg border border-white/10">
-            <div className="text-sm mb-4">
-              <div className="font-bold text-white">{user?.full_name}</div>
-              <div className="text-emerald-400 text-xs">ADMIN</div>
-            </div>
-
-            <button
-              onClick={() => {
-                handleLogout()
-                setSidebarOpen(false)
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-emerald-500 rounded-lg transition-colors text-white font-medium text-sm"
+          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-4">
+            <Link
+              href={`/${locale}/admin/profile`}
+              onClick={() => setSidebarOpen(false)}
+              className="mb-4 flex items-center gap-3 rounded-md text-sm text-white transition-colors hover:text-emerald-300"
             >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/20 font-bold text-emerald-200">
+                {(user?.full_name?.trim().charAt(0) || 'A').toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-bold text-white">{user?.full_name || 'Admin Account'}</span>
+                <span className="block text-xs text-emerald-400">Account details</span>
+              </span>
+            </Link>
+
           </div>
         </div>
       </aside>

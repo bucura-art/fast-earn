@@ -151,7 +151,7 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
           </dl>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-300">Click</span>
+            <span className="text-sm text-gray-300">Click 👉👉</span>
             <a
               href={telLink}
               className="flex-1 rounded-lg bg-emerald-500 px-4 py-3 text-center font-bold text-white transition-colors hover:bg-emerald-600"
@@ -182,6 +182,7 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
             </div>
           )}
 
+          <p className="mt-8 pt-4 text-center text-sm text-gray-300">After sending money click below 👇</p>
           {errorMessage && <p role="alert" className="text-sm text-red-300">{errorMessage}</p>}
           <button
             type="button"

@@ -9,7 +9,7 @@ import { MessageSquare, Clock } from 'lucide-react'
 interface Conversation {
   id: string
   user_id: string
-  users?: { username?: string; full_name?: string; email?: string }
+  users?: { username?: string; full_name?: string }
   subject: string
   status: 'open' | 'closed'
   assigned_to?: string
@@ -23,9 +23,6 @@ function getConversationUsername(conversation: Conversation) {
 
   const fullName = conversation.users?.full_name?.trim()
   if (fullName) return fullName
-
-  const email = conversation.users?.email?.trim()
-  if (email) return email.split('@')[0]
 
   return 'Unknown User'
 }
@@ -91,7 +88,7 @@ export default function AdminChatsPage({ params }: { params: Promise<{ locale: s
             <p className="text-gray-300">No open conversations</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-4">
             {conversations.map((conv) => {
               const username = getConversationUsername(conv)
               const avatarInitial = getAvatarInitial(username)
@@ -119,7 +116,6 @@ export default function AdminChatsPage({ params }: { params: Promise<{ locale: s
                         {hasCustomSubject && (
                           <div className="truncate text-xs text-gray-400">{conv.subject}</div>
                         )}
-                        <div className="truncate text-sm text-gray-400 mt-1">{conv.users?.email || ''}</div>
                       </div>
                     </div>
                     <div className="text-right shrink-0 space-y-2">

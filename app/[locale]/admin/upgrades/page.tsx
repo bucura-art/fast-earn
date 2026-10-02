@@ -140,11 +140,11 @@ export default function AdminUpgradesPage({ params }: { params: Promise<{ locale
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Upgrade Requests</h1>
-          <p className="text-gray-300">Review and confirm tier upgrade payments</p>
+          <h1 className="text-4xl uppercase font-bold mb-2">Upgrade Requests</h1>
+          <hr className="border-white/10" />
         </div>
 
         {requests.length === 0 ? (
@@ -153,62 +153,62 @@ export default function AdminUpgradesPage({ params }: { params: Promise<{ locale
             <p className="text-gray-300">No pending upgrade requests</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {requests.map((req) => (
-              <div key={req.id} className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{req.users?.full_name || 'Unknown'}</h3>
-                    <p className="text-gray-400 text-sm">{req.users?.email || ''}</p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 text-sm font-medium">
-                    {req.status.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="grid md:grid-cols-4 gap-4 mb-6">
-                  <div>
-                    <p className="text-gray-400 text-sm">Tier</p>
-                    <p className="text-white font-semibold">{req.tiers?.name || 'Unknown'}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Amount</p>
-                    <p className="text-white font-semibold">{req.amount} RWF</p>
-                  </div>
-                  {req.final_amount && (
-                    <div>
-                      <p className="text-gray-400 text-sm">Final Amount</p>
-                      <p className="text-white font-semibold text-lg">{req.final_amount} RWF</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-gray-400 text-sm">Phone Used</p>
-                    <p className="text-white font-semibold">{req.paid_phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Date</p>
-                    <p className="text-white font-semibold">{new Date(req.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openActionModal(req, 'confirm')}
-                    disabled={Boolean(actionLoading)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded text-white font-medium"
-                  >
-                    <Check className="w-4 h-4" /> Confirm
-                  </button>
-                  <button
-                    onClick={() => openActionModal(req, 'reject')}
-                    disabled={Boolean(actionLoading)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded text-white font-medium"
-                  >
-                    <X className="w-4 h-4" /> Reject
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/5">
+            <table className="w-full min-w-900px text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5 text-left">
+                  <th scope="col" className="px-4 py-3 font-semibold">User</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Tier</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Amount</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Final Amount</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Phone Used</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Date</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Status</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((req) => (
+                  <tr key={req.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-white">{req.users?.full_name || 'Unknown'}</p>
+                    </td>
+                    <td className="px-4 py-3 text-white">{req.tiers?.name || 'Unknown'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-white">{req.amount} RWF</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-white">
+                      {req.final_amount != null ? `${req.final_amount} RWF` : '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-white">{req.paid_phone}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                      {new Date(req.created_at).toLocaleDateString('en-GB')}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex rounded-full bg-yellow-500/20 px-2.5 py-1 text-xs font-medium text-yellow-300">
+                        {req.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openActionModal(req, 'confirm')}
+                          disabled={Boolean(actionLoading)}
+                          className="inline-flex items-center gap-1.5 rounded bg-green-600 px-3 py-2 font-medium text-white hover:bg-green-500 disabled:opacity-50"
+                        >
+                          <Check className="h-4 w-4" /> Confirm
+                        </button>
+                        <button
+                          onClick={() => openActionModal(req, 'reject')}
+                          disabled={Boolean(actionLoading)}
+                          className="inline-flex items-center gap-1.5 rounded bg-red-600 px-3 py-2 font-medium text-white hover:bg-red-500 disabled:opacity-50"
+                        >
+                          <X className="h-4 w-4" /> Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

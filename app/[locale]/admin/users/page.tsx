@@ -122,7 +122,7 @@ export default function UserManagementPage(_: UserManagementProps) {
     const nextBalance = Math.round((currentBalance / 2) * 100) / 100
     setResetModal({
       userId: targetUser.id,
-      userName: targetUser.full_name || targetUser.email || 'User',
+      userName: targetUser.full_name || 'User',
       currentBalance,
       nextBalance,
     })
@@ -184,7 +184,7 @@ export default function UserManagementPage(_: UserManagementProps) {
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by email or name..."
+                placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400"
@@ -203,110 +203,116 @@ export default function UserManagementPage(_: UserManagementProps) {
           </div>
         </div>
 
-        {/* Users Grid */}
+        {/* Users Table */}
         <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-          <div className="p-6">
-            {users.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {users.map((user: any) => (
-                  <article
-                    key={user.id}
-                    className="rounded-xl border border-white/10 bg-slate-900/40 p-4 hover:border-white/20 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-white truncate">{user.full_name}</h3>
-                        <span className="text-sm text-gray-400 break-all block">{user.email}</span>
-                        <span className="text-sm text-gray-400 block">Phone: {getUserPhone(user) || 'Not provided'}</span>
-                      </div>
-                      <span className="shrink-0 px-2 py-1 bg-blue-900/40 text-blue-400 rounded text-xs font-semibold">
-                        {user.tier?.toUpperCase() || 'FREE'}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {user.is_verified ? (
-                        <span className="px-2 py-1 bg-green-900/40 text-green-400 rounded text-xs font-semibold">
-                          Verified
+          {users.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1000px] text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/5 text-left">
+                    <th scope="col" className="px-4 py-3 font-semibold">User</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Phone</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Tier</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Account Status</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Balance</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user: any) => (
+                    <tr key={user.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                      <td className="px-4 py-3 font-semibold text-white">
+                        {user.full_name || 'Unknown User'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        {getUserPhone(user) || 'Not provided'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded bg-blue-900/40 px-2 py-1 text-xs font-semibold text-blue-400">
+                          {user.tier?.toUpperCase() || 'FREE'}
                         </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-yellow-900/40 text-yellow-400 rounded text-xs font-semibold">
-                          Unverified
-                        </span>
-                      )}
-                      {user.is_suspended && (
-                        <span className="px-2 py-1 bg-red-900/40 text-red-400 rounded text-xs font-semibold">
-                          Suspended
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="text-xs text-gray-400">Balance</p>
-                      <p className="text-emerald-400 font-semibold">{formatRwfCompact(user.balance)}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {user.role === 'admin' ? (
-                        <span className="px-2 py-1 bg-purple-900/40 text-purple-400 rounded text-xs font-semibold border border-purple-500/30">
-                          Admin Access
-                        </span>
-                      ) : (
-                        <>
-                          {!user.is_verified && (
-                            <button
-                              onClick={() => handleVerify(user.id)}
-                              disabled={actionLoading === user.id}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-medium transition-colors disabled:opacity-50"
-                              title="Verify user"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              Verify
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => handleSuspend(user.id, !user.is_suspended)}
-                            disabled={actionLoading === user.id}
-                            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50 ${
-                              user.is_suspended
-                                ? 'bg-gray-600 hover:bg-gray-500'
-                                : 'bg-orange-600 hover:bg-orange-500'
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          <span
+                            className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${
+                              user.is_verified
+                                ? 'bg-green-900/40 text-green-400'
+                                : 'bg-yellow-900/40 text-yellow-400'
                             }`}
-                            title={user.is_suspended ? 'Unsuspend user' : 'Suspend user'}
                           >
-                            <Ban className="w-3.5 h-3.5" />
-                            {user.is_suspended ? 'Unsuspend' : 'Suspend'}
-                          </button>
+                            {user.is_verified ? 'Verified' : 'Unverified'}
+                          </span>
+                          {user.is_suspended && (
+                            <span className="inline-flex rounded bg-red-900/40 px-2 py-1 text-xs font-semibold text-red-400">
+                              Suspended
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-emerald-400">
+                        {formatRwfCompact(user.balance)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {user.role === 'admin' ? (
+                          <span className="inline-flex whitespace-nowrap rounded border border-purple-500/30 bg-purple-900/40 px-2 py-1 text-xs font-semibold text-purple-400">
+                            Admin Access
+                          </span>
+                        ) : (
+                          <div className="flex min-w-max flex-wrap gap-1.5">
+                            {!user.is_verified && (
+                              <button
+                                onClick={() => handleVerify(user.id)}
+                                disabled={actionLoading === user.id}
+                                className="inline-flex items-center gap-1.5 rounded bg-green-600 px-2 py-1 text-xs font-medium transition-colors hover:bg-green-500 disabled:opacity-50"
+                                title="Verify user"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Verify
+                              </button>
+                            )}
 
-                          <button
-                            onClick={() => handleFlagFraud(user.id, 'manual_admin_flag')}
-                            disabled={actionLoading === user.id}
-                            className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs font-medium transition-colors disabled:opacity-50"
-                            title="Flag as fraud"
-                          >
-                            <Shield className="w-3.5 h-3.5" />
-                            Flag Fraud
-                          </button>
+                            <button
+                              onClick={() => handleSuspend(user.id, !user.is_suspended)}
+                              disabled={actionLoading === user.id}
+                              className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                                user.is_suspended ? 'bg-gray-600 hover:bg-gray-500' : 'bg-orange-600 hover:bg-orange-500'
+                              }`}
+                              title={user.is_suspended ? 'Unsuspend user' : 'Suspend user'}
+                            >
+                              <Ban className="h-3.5 w-3.5" />
+                              {user.is_suspended ? 'Unsuspend' : 'Suspend'}
+                            </button>
 
-                          <button
-                            onClick={() => handleResetBalance(user)}
-                            disabled={actionLoading === user.id}
-                            className="inline-flex items-center gap-1.5 px-2 py-1 bg-red-700 hover:bg-red-600 rounded text-xs font-medium transition-colors disabled:opacity-50"
-                            title="Reset user balance to half"
-                          >
-                            Reset Balance
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-gray-400">No users found</div>
-            )}
-          </div>
+                            <button
+                              onClick={() => handleFlagFraud(user.id, 'manual_admin_flag')}
+                              disabled={actionLoading === user.id}
+                              className="inline-flex items-center gap-1.5 rounded bg-emerald-600 px-2 py-1 text-xs font-medium transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                              title="Flag as fraud"
+                            >
+                              <Shield className="h-3.5 w-3.5" />
+                              Flag Fraud
+                            </button>
+
+                            <button
+                              onClick={() => handleResetBalance(user)}
+                              disabled={actionLoading === user.id}
+                              className="inline-flex items-center gap-1.5 rounded bg-red-700 px-2 py-1 text-xs font-medium transition-colors hover:bg-red-600 disabled:opacity-50"
+                              title="Reset user balance to half"
+                            >
+                              Reset Balance
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-gray-400">No users found</div>
+          )}
 
           {/* Pagination */}
           <div className="flex items-center justify-between p-6 border-t border-white/10">

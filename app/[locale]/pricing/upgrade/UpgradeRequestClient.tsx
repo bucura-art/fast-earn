@@ -11,7 +11,7 @@ import { X } from 'lucide-react'
 export default function UpgradeRequestClient({ locale }: { locale: string }) {
   const router = useRouter()
   const search = useSearchParams()
-  const { isProtected, user } = useProtectedRoute()
+  const { isProtected } = useProtectedRoute()
 
   const tierParam = search.get('tier')
   const initialTier = tierParam === 'pro' || tierParam === 'pro_max' ? tierParam : undefined
@@ -19,8 +19,6 @@ export default function UpgradeRequestClient({ locale }: { locale: string }) {
   const [prices, setPrices] = useState<Record<string, number>>({})
   const [pricesLoaded, setPricesLoaded] = useState(false)
   const [upgradeSubmitted, setUpgradeSubmitted] = useState(false)
-  const [checkingTier, setCheckingTier] = useState(false)
-  const [reviewMessage, setReviewMessage] = useState('')
 
   useEffect(() => {
     async function fetchPrices() {
@@ -40,46 +38,6 @@ export default function UpgradeRequestClient({ locale }: { locale: string }) {
     void fetchPrices()
   }, [])
 
-  async function handleContinue() {
-    if (!user?.id || checkingTier) return
-
-    setCheckingTier(true)
-    setReviewMessage('')
-    try {
-      const { data: profile, error } = await supabase
-        .from('users')
-        .select('tier_id')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (error) throw error
-
-      let tier: string | null = null
-      if (profile?.tier_id) {
-        const { data: tierData, error: tierError } = await supabase
-          .from('tiers')
-          .select('name')
-          .eq('id', profile.tier_id)
-          .maybeSingle()
-
-        if (tierError) throw tierError
-        tier = tierData?.name ?? null
-      }
-
-      if (!tier || tier === 'free') {
-        setReviewMessage('Account under review, Try again later.')
-        return
-      }
-
-      router.push(`/${locale}/dashboard`)
-    } catch (error) {
-      console.error('Error checking reviewed account tier:', error)
-      setReviewMessage('Could not check account status. Please try again.')
-    } finally {
-      setCheckingTier(false)
-    }
-  }
-
   if (!isProtected || !pricesLoaded) return <PageLoading />
 
   return (
@@ -93,44 +51,33 @@ export default function UpgradeRequestClient({ locale }: { locale: string }) {
       >
         <X size={20} aria-hidden="true" />
       </button>
-      <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 md:gap-12 lg:gap-16">
-          <div className="mb-8 md:mb-0">
-            <h1 className="text-3xl font-bold mb-2">Upgrade Account</h1>
-          </div>
-
-          <div>
-            <UpgradeChatWidget
-              initialTier={initialTier}
-              tierPrices={prices}
-              onSubmitted={() => setUpgradeSubmitted(true)}
-            />
-            {upgradeSubmitted && (
-              <div className="mt-4 space-y-3">
-                <div
-                  role={reviewMessage && reviewMessage !== 'Account under review' ? 'alert' : 'status'}
-                  className={`rounded-lg border px-4 py-3 text-sm ${
-                    reviewMessage === 'Account under review'
-                      ? 'border-amber-400/30 bg-amber-400/10 text-amber-200'
-                      : reviewMessage
-                        ? 'border-red-400/30 bg-red-400/10 text-red-200'
-                        : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'
-                  }`}
-                >
-                  {reviewMessage || 'Upgrade request submitted.'}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleContinue()}
-                  disabled={checkingTier}
-                  className="w-full rounded-lg border border-blue-500 bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {checkingTier ? 'Checking...' : 'Continue'}
-                </button>
-              </div>
-            )}
-          </div>
+      <div className="container mx-auto max-w-3xl px-4">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold mb-2">Upgrade Account</h1>
         </div>
+
+        <UpgradeChatWidget
+          initialTier={initialTier}
+          tierPrices={prices}
+          onSubmitted={() => setUpgradeSubmitted(true)}
+        />
+        {upgradeSubmitted && (
+          <div className="mt-4 space-y-3">
+            <div
+              role="status"
+              className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200"
+            >
+              Upgrade request submitted.
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/${locale}/workspace`)}
+              className="w-full rounded-lg border border-blue-500 bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-500"
+            >
+              Continue
+            </button>
+          </div>
+        )}
       </div>
 
     </div>

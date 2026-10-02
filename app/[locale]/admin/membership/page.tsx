@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
 import { getAllSubscriptions } from '@/lib/admin'
 import AdminLoading from '@/components/admin/AdminPageLoading'
-import { TrendingUp, Users } from 'lucide-react'
+import { ExternalLink, TrendingUp, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase-client'
 
 interface SubscriptionManagementProps {
@@ -18,6 +18,7 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
   const [subscriptions, setSubscriptions] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
+  const [pendingRequestCount, setPendingRequestCount] = useState(0)
   const [stats, setStats] = useState({
     totalSubscribers: 0,
     activeSubscriptions: 0,
@@ -89,6 +90,26 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
     loadSubscriptions()
   }, [isProtected, page])
 
+  useEffect(() => {
+    if (!isProtected) return
+
+    const loadPendingRequestCount = async () => {
+      const { count, error } = await supabase
+        .from('upgrade_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending')
+
+      if (error) {
+        console.error('Error loading pending upgrade request count:', error)
+        return
+      }
+
+      setPendingRequestCount(count ?? 0)
+    }
+
+    void loadPendingRequestCount()
+  }, [isProtected])
+
   if (loading) {
     return <AdminLoading />
   }
@@ -100,130 +121,67 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Subscription Management</h1>
-          <p className="text-gray-300">Monitor subscriber tiers and revenue metrics</p>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl uppercase font-bold mb-2">Membership Management</h1>
+            <hr className="border-white" />
+          </div>
+          <a
+            href={`/${locale}/admin/upgrades`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-500"
+          >
+            <span>New Requests</span>
+            <span
+              aria-label={`${pendingRequestCount} pending requests`}
+              className="inline-flex min-w-6 items-center justify-center rounded-full bg-white/20 px-2 py-0.5 text-sm"
+            >
+              {pendingRequestCount}
+            </span>
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          </a>
         </div>
 
         {/* Statistics Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          {/* Total Subscribers */}
+          {/* All-Time Members */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Total Subscribers</h3>
+              <h3 className="text-sm font-semibold text-gray-300">All Members</h3>
               <Users className="w-5 h-5 text-blue-400" />
             </div>
             <p className="text-3xl font-bold text-white">{stats.totalSubscribers}</p>
-            <p className="text-xs text-gray-400 mt-2">{stats.activeSubscriptions} active</p>
           </div>
 
-          {/* Monthly Revenue */}
+          {/* All-Time Revenue */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Monthly Revenue</h3>
+              <h3 className="text-sm font-semibold text-gray-300">Total Revenue</h3>
               <TrendingUp className="w-5 h-5 text-emerald-400" />
             </div>
             <p className="text-3xl font-bold text-white">{formatRevenue(stats.monthlyRevenue)}</p>
-            <p className="text-xs text-gray-400 mt-2">Revenue 30 days ago</p>
           </div>
 
-          {/* Free Tier */}
+          {/* Pro Users */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Free Users</h3>
-            <p className="text-3xl font-bold text-blue-400">{stats.tierBreakdown.free}</p>
-            <p className="text-xs text-gray-400 mt-2">{((stats.tierBreakdown.free / Math.max(stats.totalSubscribers, 1)) * 100).toFixed(1)}% of total</p>
+            <h3 className="text-sm font-semibold text-gray-300 mb-2">Pro Members</h3>
+            <p className="text-3xl font-bold text-yellow-400">{stats.tierBreakdown.pro}</p>
           </div>
 
-          {/* Premium Tiers */}
+          {/* Pro Max Users */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Premium Users</h3>
-            <p className="text-3xl font-bold text-emerald-400">
-              {stats.tierBreakdown.pro + stats.tierBreakdown.pro_max}
-            </p>
-            <p className="text-xs text-gray-400 mt-2">
-              {(((stats.tierBreakdown.pro + stats.tierBreakdown.pro_max) / Math.max(stats.totalSubscribers, 1)) * 100).toFixed(1)}% of total
-            </p>
+            <h3 className="text-sm font-semibold text-gray-300 mb-2">Pro Max Members</h3>
+            <p className="text-3xl font-bold text-purple-400">{stats.tierBreakdown.pro_max}</p>
           </div>
         </div>
 
-        {/* Tier Breakdown */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {/* Free Tier */}
-          <div className="p-8 rounded-2xl bg-white/5 border border-blue-500/30">
-            <h2 className="text-2xl font-bold mb-4 text-blue-400">Free Tier</h2>
-            <div className="space-y-3">
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Subscribers</span>
-                <p className="text-3xl font-bold">{stats.tierBreakdown.free}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Monthly Price</span>
-                <p className="text-2xl font-bold text-emerald-400">{(tierPrices['free'] || 0).toLocaleString()} RWF</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Features</span>
-                <div className="text-sm text-gray-300 space-y-1">
-                  <span className="block">✓ Video tasks</span>
-                  <span className="block">✓ 1.0x multiplier</span>
-                  <span className="block">✓ 5 tasks/day</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pro Tier */}
-          <div className="p-8 rounded-2xl bg-white/5 border border-yellow-500/30">
-            <h2 className="text-2xl font-bold mb-4 text-yellow-400">Pro Tier</h2>
-            <div className="space-y-3">
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Subscribers</span>
-                <p className="text-3xl font-bold">{stats.tierBreakdown.pro}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Monthly Price</span>
-                <p className="text-2xl font-bold text-yellow-400">{(tierPrices['pro'] || 0).toLocaleString()} RWF</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Features</span>
-                <div className="text-sm text-gray-300 space-y-1">
-                  <span className="block">✓ All free features</span>
-                  <span className="block">✓ 2.0x multiplier</span>
-                  <span className="block">✓ 10 tasks/day</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pro Max Tier */}
-          <div className="p-8 rounded-2xl bg-white/5 border border-purple-500/30">
-            <h2 className="text-2xl font-bold mb-4 text-purple-400">Pro Max Tier</h2>
-            <div className="space-y-3">
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Subscribers</span>
-                <p className="text-3xl font-bold">{stats.tierBreakdown.pro_max}</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Monthly Price</span>
-                <p className="text-2xl font-bold text-purple-400">{(tierPrices['pro_max'] || 0).toLocaleString()} RWF</p>
-              </div>
-              <div>
-                <span className="text-gray-400 text-sm mb-1 block">Features</span>
-                <div className="text-sm text-gray-300 space-y-1">
-                  <span className="block">✓ All pro features</span>
-                  <span className="block">✓ 3.0x multiplier</span>
-                  <span className="block">✓ 20 tasks/day</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Subscriptions */}
+        {/* Recent Memberships */}
         <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
           <div className="p-6 border-b border-white/10">
-            <h2 className="text-2xl font-bold">Recent Subscriptions</h2>
+            <h2 className="text-2xl font-bold">Recent Memberships</h2>
           </div>
 
           <div className="overflow-x-auto">
@@ -272,7 +230,7 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
                 ) : (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-gray-400">
-                      No subscriptions found
+                      No memberships found
                     </td>
                   </tr>
                 )}
@@ -283,7 +241,7 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
           {/* Pagination */}
           <div className="flex items-center justify-between p-6 border-t border-white/10">
             <p className="text-sm text-gray-400">
-              Showing {Math.min((page + 1) * 50, total)} of {total} subscriptions
+              Showing {Math.min((page + 1) * 50, total)} of {total} memberships
             </p>
             <div className="flex gap-2">
               <button

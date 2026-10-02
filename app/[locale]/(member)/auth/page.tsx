@@ -13,9 +13,6 @@ export default async function AuthPage({ params, searchParams }: AuthPageProps) 
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-b from-slate-900 via-indigo-950 to-slate-900 px-4 py-12 text-white">
-      <Link href={`/${locale}`} className="mb-6 text-sm text-blue-300 hover:text-blue-200">
-        Back
-      </Link>
       {isRegistering ? (
         <RegisterForm locale={locale} refCode={query.ref} />
       ) : (
