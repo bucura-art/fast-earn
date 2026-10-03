@@ -97,7 +97,7 @@ export default function InvestorsPage({ params }: InvestorsPageProps) {
   const formatRwf = (amount: number) => `${amount.toLocaleString('en-GB')} RWF`
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 py-8 text-white">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 py-8 text-white">
       <div className="container mx-auto max-w-7xl px-4">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -110,10 +110,10 @@ export default function InvestorsPage({ params }: InvestorsPageProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-500"
           >
-            <span>New Requests</span>
+            <span>Pending Requests</span>
             <span
               aria-label={`${overview.pendingRequests} pending requests`}
-              className="inline-flex min-w-6 items-center justify-center rounded-full bg-white/20 px-2 py-0.5 text-sm"
+              className="inline-flex min-w-6 items-center justify-center rounded-full bg-orange-500 px-2 py-0.5 text-sm"
             >
               {overview.pendingRequests}
             </span>

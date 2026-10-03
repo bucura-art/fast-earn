@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/hooks'
@@ -16,7 +17,6 @@ import {
   Star,
   ShieldAlert,
   Settings,
-  Shield,
 } from 'lucide-react'
 
 interface AdminLayoutProps {
@@ -36,24 +36,26 @@ export default function AdminNav({ locale }: AdminLayoutProps) {
 
   const navItems = [
     { label: 'Dashboard', href: `/${locale}/admin`, icon: LayoutDashboard },
-    { label: 'Users', href: `/${locale}/admin/users`, icon: Users },
+    { label: 'Users Mngmt', href: `/${locale}/admin/users`, icon: Users },
     { label: 'Investors', href: `/${locale}/admin/investors`, icon: TrendingUp },
     { label: 'Withdrawals', href: `/${locale}/admin/withdrawals`, icon: CreditCard },
     { label: 'Membership', href: `/${locale}/admin/membership`, icon: Star },
     { label: 'Support', href: `/${locale}/admin/chats`, icon: MessageSquare },
-    { label: 'Tasks', href: `/${locale}/admin/tasks`, icon: ClipboardList },
+    { label: 'Tasks Mngmt', href: `/${locale}/admin/tasks`, icon: ClipboardList },
     { label: 'Fraud Logs', href: `/${locale}/admin/fraud`, icon: ShieldAlert },
-    { label: 'Settings', href: `/${locale}/admin/settings`, icon: Settings },
+    { label: 'System Settings', href: `/${locale}/admin/settings`, icon: Settings },
   ]
 
   return (
     <>
       {/* Mobile Top Bar */}
       <div className="lg:hidden sticky top-0 z-40 bg-linear-to-r from-slate-900 via-emerald-950 to-slate-900 border-b border-emerald-500/30 px-4 py-3 flex items-center justify-between">
-        <Link href={`/${locale}/admin`} className="text-lg font-bold text-emerald-400 flex items-center gap-2">
-          <Shield className="w-5 h-5" />
-          Admin
-        </Link>
+        <div className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+          <div className="relative h-5 w-8">
+            <Image src="/images/dollar-notes.png" alt="Dollar notes" fill sizes="32px" className="object-contain" />
+          </div>
+          FASTANA
+        </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
@@ -79,13 +81,12 @@ export default function AdminNav({ locale }: AdminLayoutProps) {
         <div className="p-6 lg:p-4 h-full flex flex-col">
           {/* Logo - Desktop Only */}
           <div className="sticky top-0 z-10 -mx-6 -mt-6 mb-8 bg-slate-900 px-6 pt-6 pb-3 lg:-mx-4 lg:-mt-4 lg:px-4 lg:pt-4">
-            <Link
-              href={`/${locale}/admin`}
-              className="hidden lg:flex items-center gap-2 text-2xl font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
-            >
-              <Shield className="w-8 h-8" />
-              Admin Panel
-            </Link>
+            <div className="hidden lg:flex items-center gap-2 text-2xl font-bold text-white">
+              <div className="relative h-8 w-12">
+                <Image src="/images/dollar-notes.png" alt="Dollar notes" fill sizes="48px" className="object-contain" />
+              </div>
+              FASTANA
+            </div>
           </div>
 
           {/* Navigation Items */}

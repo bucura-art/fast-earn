@@ -1,58 +1,58 @@
 "use client"
 
-import { use, useEffect, useState, useCallback } from 'react'
-import Link from 'next/link'
+import { useEffect, useState, useCallback } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
-import { getSystemStats, getFraudLogs } from '@/lib/admin'
-import { getReferralLeaderboard } from '@/lib/referral'
-import AdminLoading from '@/components/admin/AdminPageLoading'
-import { TrendingUp, Users, Briefcase, DollarSign, Activity, Trophy } from 'lucide-react'
+import { TrendingUp, Users, Briefcase, DollarSign, Gift, CheckSquare, Package } from 'lucide-react'
+import TheTopEarners from '@/components/admin/TheTopEarners'
 import ReferralLeaderboard from '@/components/dashboard/ReferralLeaderboard'
 import supabase from '@/lib/supabaseClient'
 
-interface AdminDashboardProps {
-  params: Promise<{ locale: string }>
+interface PerformanceStats {
+  totalUsers: number
+  activeUsers: number
+  paidUsers: number
+  activeTasks: number
+  activeProducts: number
 }
 
-interface DashboardStats {
-  totalUsers?: number
-  activeUsers?: number
-  totalDistributed?: number
-  totalPayouts?: number
-  activeTasks?: number
+interface PayoutStats {
+  totalUserBalance: number
+  totalBonus: number
+  totalRewards: number
+  totalProductRoi: number
+  totalPaidOut: number
 }
 
-interface SystemStats {
-  newUsersLast30Days?: number
-  totalTransactionsLast30Days?: number
-  taskCompletionRate?: number
+interface IncomeStats {
+  totalMembers: number
+  totalInvestors: number
+  membershipIncome: number
+  productIncome: number
 }
 
-interface LeaderboardEntry {
-  user_id: string
-  full_name: string
-  referral_count: number
+interface SectionState<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
 }
 
-interface RecentFraudLog {
-  id: string
-  users?: { full_name?: string; email?: string }
-  fraud_type?: string
-  severity?: string
-  description?: string
-  created_at?: string
-}
-
-export default function AdminDashboard({ params }: AdminDashboardProps) {
-  const { locale } = use(params)
+export default function AdminDashboard() {
   const { isProtected } = useAdminRoute()
-  const [loading, setLoading] = useState<boolean>(true)
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
-  const [recentFraudLogs, setRecentFraudLogs] = useState<RecentFraudLog[]>([])
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState<boolean>(false)
+  const [performance, setPerformance] = useState<SectionState<PerformanceStats>>({
+    data: null,
+    loading: true,
+    error: null,
+  })
+  const [payout, setPayout] = useState<SectionState<PayoutStats>>({
+    data: null,
+    loading: true,
+    error: null,
+  })
+  const [income, setIncome] = useState<SectionState<IncomeStats>>({
+    data: null,
+    loading: true,
+    error: null,
+  })
 
   const formatCompactCount = (value: number) => {
     const amount = Number(value || 0)
@@ -72,211 +72,276 @@ export default function AdminDashboard({ params }: AdminDashboardProps) {
     return `${amount.toLocaleString()} RWF`
   }
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const loadPerformance = useCallback(async () => {
+    setPerformance((previous) => ({ ...previous, loading: true, error: null }))
     try {
-      const [statsRes, sysStats, { logs }, leaderboardData] = await Promise.all([
-        supabase.rpc('get_admin_dashboard_stats'),
-        getSystemStats(),
-        getFraudLogs(5),
-        getReferralLeaderboard(5),
-      ])
+      const { data, error } = await supabase.rpc('get_admin_dashboard_performance_stats')
+      if (error) throw error
+      const result = data?.[0]
+      if (!result) throw new Error('Performance endpoint returned no data')
 
-      if (statsRes.error) throw statsRes.error
-      const dashboardStats = statsRes.data?.[0]
-
-      setStats({
-        totalUsers: Number(dashboardStats?.total_users || 0),
-        activeUsers: Number(dashboardStats?.active_users || 0),
-        totalDistributed: Number(dashboardStats?.total_distributed || 0),
-        totalPayouts: Number(dashboardStats?.total_payouts || 0),
-        activeTasks: Number(dashboardStats?.active_tasks || 0),
+      setPerformance({
+        data: {
+          totalUsers: Number(result.total_users),
+          activeUsers: Number(result.active_users),
+          paidUsers: Number(result.paid_users),
+          activeTasks: Number(result.active_tasks),
+          activeProducts: Number(result.active_products),
+        },
+        loading: false,
+        error: null,
       })
-
-      setSystemStats({
-        newUsersLast30Days: Number(sysStats?.newUsersLast30Days || 0),
-        totalTransactionsLast30Days: Number(sysStats?.totalTransactionsLast30Days || 0),
-        taskCompletionRate: Number(sysStats?.taskCompletionRate || 0),
-      })
-      setRecentFraudLogs((logs || []) as RecentFraudLog[])
-      setLeaderboard((leaderboardData || []) as LeaderboardEntry[])
     } catch (error) {
-      console.error('Error loading dashboard data:', error)
-      setError('Failed to load dashboard data. Please try again.')
-    } finally {
-      setLoading(false)
+      console.error('Error loading performance stats:', error)
+      setPerformance((previous) => ({
+        ...previous,
+        loading: false,
+        error: 'Failed to load performance stats.',
+      }))
     }
-  }, []) // No dependencies needed here if all fetched data is set via state setters
+  }, [])
+
+  const loadPayout = useCallback(async () => {
+    setPayout((previous) => ({ ...previous, loading: true, error: null }))
+    try {
+      const { data, error } = await supabase.rpc('get_admin_dashboard_payout_stats')
+      if (error) throw error
+      const result = data?.[0]
+      if (!result) throw new Error('Payout endpoint returned no data')
+
+      setPayout({
+        data: {
+          totalUserBalance: Number(result.total_user_balance),
+          totalBonus: Number(result.total_bonus),
+          totalRewards: Number(result.total_rewards),
+          totalProductRoi: Number(result.total_product_roi),
+          totalPaidOut: Number(result.total_paid_out),
+        },
+        loading: false,
+        error: null,
+      })
+    } catch (error) {
+      console.error('Error loading payout stats:', error)
+      setPayout((previous) => ({
+        ...previous,
+        loading: false,
+        error: 'Failed to load payout stats.',
+      }))
+    }
+  }, [])
+
+  const loadIncome = useCallback(async () => {
+    setIncome((previous) => ({ ...previous, loading: true, error: null }))
+    try {
+      const { data, error } = await supabase.rpc('get_admin_dashboard_income_stats')
+      if (error) throw error
+      const result = data?.[0]
+      if (!result) throw new Error('Income endpoint returned no data')
+
+      setIncome({
+        data: {
+          totalMembers: Number(result.total_members),
+          totalInvestors: Number(result.total_investors),
+          membershipIncome: Number(result.membership_income),
+          productIncome: Number(result.product_income),
+        },
+        loading: false,
+        error: null,
+      })
+    } catch (error) {
+      console.error('Error loading income stats:', error)
+      setIncome((previous) => ({
+        ...previous,
+        loading: false,
+        error: 'Failed to load income stats.',
+      }))
+    }
+  }, [])
 
   useEffect(() => {
     if (!isProtected) return
-    loadData()
-  }, [isProtected, loadData])
-
-  if (loading) {
-    return <AdminLoading />
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
-        <div className="container mx-auto px-4 max-w-7xl text-center">
-          <div className="p-8 rounded-2xl bg-red-900/20 border border-red-500/30">
-            <h2 className="text-2xl font-bold text-red-400 mb-4">An Error Occurred</h2>
-            <p className="text-gray-300 mb-6">{error}</p>
-            <button
-              onClick={loadData}
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors font-semibold"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+    void loadPerformance()
+    void loadPayout()
+    void loadIncome()
+  }, [isProtected, loadPerformance, loadPayout, loadIncome])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-gray-300">Platform overview and management</p>
+        <div className="sticky top-0 z-20 mb-8 -mx-4 bg-slate-900/80 px-4 pb-3 pt-2 backdrop-blur-sm border-b border-emerald-500/30">
+          <h1 className="text-4xl font-bold">Admin Dashboard</h1>
         </div>
 
-        {/* Key Statistics Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Total Users</h3>
-              <Users className="w-5 h-5 text-blue-400" />
-            </div>
-            <p className="text-3xl font-bold text-white">{formatCompactCount(Number(stats?.totalUsers || 0))}</p>
-            <p className="text-xs text-gray-400 mt-2">
-              {formatCompactCount(Number(stats?.activeUsers || 0))} active | {((Number(stats?.activeUsers || 0) / Math.max(Number(stats?.totalUsers || 0), 1)) * 100).toFixed(1)}%
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          {/* Performance section */}
+          <section aria-labelledby="performance-heading" className="rounded-2xl border border-emerald-500/40 bg-slate-900/30 p-4">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 id="performance-heading" className="text-xl font-bold">Performance</h2>
+            <p className="text-right text-xs text-gray-300">
+              <span className="font-semibold text-emerald-400">{performance.data ? formatCompactCount(performance.data.totalUsers) : '—'} Users</span>
             </p>
           </div>
-
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Distributed</h3>
-              <TrendingUp className="w-5 h-5 text-emerald-400" />
+          {performance.loading && !performance.data && <p className="mb-3 text-xs text-gray-400">Loading performance...</p>}
+          {performance.error && (
+            <div role="alert" className="mb-3 flex items-center justify-between gap-2 text-xs text-red-300">
+              <span>{performance.error}</span>
+              <button type="button" onClick={loadPerformance} className="font-semibold underline">Retry</button>
             </div>
-            <p className="text-3xl font-bold text-white">{formatRwfCompact(Number(stats?.totalDistributed || 0))}</p>
-            <p className="text-xs text-gray-400 mt-2">Total rewards given</p>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/* Last seen this week */}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Active Users</h3>
+                <Users className="absolute right-0 h-4 w-4 text-blue-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{performance.data ? formatCompactCount(performance.data.activeUsers) : '—'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/*Whoever paid anything and get approved */}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Who paid</h3>
+                <CheckSquare className="absolute right-0 h-4 w-4 text-emerald-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{performance.data ? formatCompactCount(performance.data.paidUsers) : '—'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/* Currently running tasks */}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Active Tasks</h3>
+                <Briefcase className="absolute right-0 h-4 w-4 text-purple-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{performance.data ? formatCompactCount(performance.data.activeTasks) : '—'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/*Active Products */}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Active Products</h3>
+                <Package className="absolute right-0 h-4 w-4 text-indigo-300" />
+              </div>
+              <p className="text-2xl font-bold text-white">{performance.data ? formatCompactCount(performance.data.activeProducts) : '—'}</p>
+            </div>
           </div>
+          </section>
 
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Paid Out</h3>
-              <DollarSign className="w-5 h-5 text-yellow-400" />
-            </div>
-            <p className="text-3xl font-bold text-white">{formatRwfCompact(Number(stats?.totalPayouts || 0))}</p>
-            <p className="text-xs text-gray-400 mt-2">
-              {((Number(stats?.totalPayouts || 0) / Math.max(Number(stats?.totalDistributed || 0), 1)) * 100).toFixed(1)}% payout rate
+          {/* Payout section */}
+          <section aria-labelledby="payout-heading" className="rounded-2xl border border-emerald-500/40 bg-slate-900/30 p-4">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 id="payout-heading" className="text-xl font-bold">Payout</h2>
+            <p className="text-right text-xs text-gray-300">
+              <span className="font-semibold text-orange-400">{payout.data ? formatRwfCompact(payout.data.totalUserBalance) : '— RWF'}</span>
             </p>
           </div>
-
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Active Tasks</h3>
-              <Briefcase className="w-5 h-5 text-purple-400" />
+          {payout.loading && !payout.data && <p className="mb-3 text-xs text-gray-400">Loading payout...</p>}
+          {payout.error && (
+            <div role="alert" className="mb-3 flex items-center justify-between gap-2 text-xs text-red-300">
+              <span>{payout.error}</span>
+              <button type="button" onClick={loadPayout} className="font-semibold underline">Retry</button>
             </div>
-            <p className="text-3xl font-bold text-white">{formatCompactCount(Number(stats?.activeTasks || 0))}</p>
-            <p className="text-xs text-gray-400 mt-2">Running tasks</p>
-          </div>
-        </div>
+          )}
 
-        {/* Quick Action Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="p-8 rounded-2xl bg-white/5 border border-white/10">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <Activity className="w-6 h-6" />
-              System Health
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">New Users (Last 30 Days)</p>
-                <p className="text-2xl font-bold text-blue-400">{formatCompactCount(Number(systemStats?.newUsersLast30Days || 0))}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/* Welcome and checkin bonuses */}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Total Bonus</h3>
+                <Gift className="absolute right-0 h-4 w-4 text-amber-400" />
               </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Transactions Volume</p>
-                <p className="text-2xl font-bold text-emerald-400">{formatRwfCompact(Number(systemStats?.totalTransactionsLast30Days || 0))}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Task Completion Rate</p>
-                <p className="text-2xl font-bold text-yellow-400">{systemStats?.taskCompletionRate}%</p>
-              </div>
+              <p className="text-2xl font-bold text-white">{payout.data ? formatRwfCompact(payout.data.totalBonus) : '— RWF'}</p>
             </div>
-          </div>
 
-          <div className="p-8 rounded-2xl bg-white/5 border border-white/10">
-            <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <Link
-                href={`/${locale}/admin/users`}
-                className="p-4 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors text-center font-semibold"
-              >
-                Manage Users
-              </Link>
-              <Link
-                href={`/${locale}/admin/tasks`}
-                className="p-4 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors text-center font-semibold"
-              >
-                Manage Tasks
-              </Link>
-              <Link
-                href={`/${locale}/admin/withdrawals`}
-                className="p-4 bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors text-center font-semibold"
-              >
-                Withdrawals
-              </Link>
-              <Link
-                href={`/${locale}/admin/fraud`}
-                className="p-4 bg-red-600 hover:bg-red-500 rounded-lg transition-colors text-center font-semibold"
-              >
-                Fraud Logs
-              </Link>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/* Videos and other tasks rewards */}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Tasks Rewards</h3>
+                <CheckSquare className="absolute right-0 h-4 w-4 text-blue-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{payout.data ? formatRwfCompact(payout.data.totalRewards) : '— RWF'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/* Credited product income*/}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Products ROI</h3>
+                <Package className="absolute right-0 h-4 w-4 text-indigo-300" />
+              </div>
+              <p className="text-2xl font-bold text-white">{payout.data ? formatRwfCompact(payout.data.totalProductRoi) : '— RWF'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                {/* Approved payouts*/}
+                <h3 className="text-left text-xs font-semibold text-gray-300">Distributed</h3>
+                <DollarSign className="absolute right-0 h-4 w-4 text-emerald-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{payout.data ? formatRwfCompact(payout.data.totalPaidOut) : '— RWF'}</p>
             </div>
           </div>
+          </section>
+
+          {/* Income section */}
+          <section aria-labelledby="income-heading" className="rounded-2xl border border-emerald-500/40 bg-slate-900/30 p-4">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 id="income-heading" className="text-xl font-bold">Income</h2>
+            <p className="text-right text-xs text-gray-300">
+              <span className="font-semibold text-emerald-400">
+                {income.data ? formatRwfCompact(income.data.membershipIncome + income.data.productIncome) : '— RWF'}
+              </span>
+            </p>
+          </div>
+          {income.loading && !income.data && <p className="mb-3 text-xs text-gray-400">Loading income...</p>}
+          {income.error && (
+            <div role="alert" className="mb-3 flex items-center justify-between gap-2 text-xs text-red-300">
+              <span>{income.error}</span>
+              <button type="button" onClick={loadIncome} className="font-semibold underline">Retry</button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                <h3 className="text-left text-xs font-semibold text-gray-300">Total Members</h3>
+                <Users className="absolute right-0 h-4 w-4 text-blue-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{income.data ? formatCompactCount(income.data.totalMembers) : '—'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                <h3 className="text-left text-xs font-semibold text-gray-300">Total Investors</h3>
+                <Briefcase className="absolute right-0 h-4 w-4 text-purple-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{income.data ? formatCompactCount(income.data.totalInvestors) : '—'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                <h3 className="text-left text-xs font-semibold text-gray-300">Membership</h3>
+                <DollarSign className="absolute right-0 h-4 w-4 text-yellow-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{income.data ? formatRwfCompact(income.data.membershipIncome) : '— RWF'}</p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:border-white/20">
+              <div className="relative mb-3 flex justify-start">
+                <h3 className="text-left text-xs font-semibold text-gray-300">Products</h3>
+                <TrendingUp className="absolute right-0 h-4 w-4 text-emerald-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{income.data ? formatRwfCompact(income.data.productIncome) : '— RWF'}</p>
+            </div>
+          </div>
+          </section>
         </div>
 
-        {/* Referral Leaderboard */}
-        <div className="p-8 rounded-2xl bg-white/5 border border-white/10">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-yellow-400" />
-              Top Referrers
-            </h2>
-            <button
-              onClick={() => setShowLeaderboardModal(true)}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors text-sm font-semibold"
-            >
-              View All
-            </button>
-          </div>
-          <div className="space-y-3">
-            {leaderboard.length > 0 ? (
-              leaderboard.map((user, index) => (
-                <div key={user.user_id} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-gray-400 w-5 text-center">{index + 1}</span>
-                    <span className="font-medium text-white">{user.full_name || 'Anonymous'}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-bold text-lg text-emerald-400">{user.referral_count}</span>
-                    <span className="text-xs text-gray-500 ml-1">referrals</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No referral data available yet.</p>
-            )}
-          </div>
-        </div>
       </div>
-      <ReferralLeaderboard />
+      <div className="container mx-auto mt-8 grid max-w-7xl gap-6 px-4 lg:grid-cols-2">
+        <TheTopEarners />
+        <ReferralLeaderboard />
+      </div>
     </div>
   )
 }

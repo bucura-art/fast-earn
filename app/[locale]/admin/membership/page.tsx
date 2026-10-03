@@ -22,7 +22,7 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
   const [stats, setStats] = useState({
     totalSubscribers: 0,
     activeSubscriptions: 0,
-    monthlyRevenue: 0,
+    totalRevenue: 0,
     tierBreakdown: { free: 0, pro: 0, pro_max: 0 },
   })
   const [tierPrices, setTierPrices] = useState<Record<string, number>>({ free: 0, pro: 6000, pro_max: 12000 })
@@ -42,7 +42,9 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
           setTierPrices((prev) => ({ ...prev, ...currentPrices }))
         }
 
-        const { subscriptions: fetchedSubs, total: totalCount } = await getAllSubscriptions(50, page * 50)
+        const { subscriptions: fetchedSubs, total: totalCount } = await getAllSubscriptions(50, page * 50, {
+          excludeFree: true,
+        })
 
         setSubscriptions(fetchedSubs)
         setTotal(totalCount)
@@ -58,26 +60,14 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
           }
         })
 
-        // Calculate monthly revenue from confirmed upgrade requests in the last 30 days
-        const thirtyDaysAgo = new Date()
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-        const { data: revenueData } = await supabase
-          .from('upgrade_requests')
-          .select('final_amount, amount')
-          .eq('status', 'confirmed')
-          .gte('created_at', thirtyDaysAgo.toISOString())
-
-        const monthlyRev =
-          revenueData?.reduce((sum, req) => {
-            const amount = req.final_amount ?? req.amount
-            return sum + (Number(amount) || 0)
-          }, 0) || 0
+        const { data: incomeData, error: incomeError } = await supabase.rpc('get_admin_dashboard_income_stats')
+        if (incomeError) throw incomeError
+        const totalMembershipRevenue = Number(incomeData?.[0]?.membership_income ?? 0)
 
         setStats({
           totalSubscribers: totalCount,
           activeSubscriptions: activeCount,
-          monthlyRevenue: monthlyRev,
+          totalRevenue: totalMembershipRevenue,
           tierBreakdown: tierCounts,
         })
       } catch (error) {
@@ -120,13 +110,19 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
     return `${amount.toLocaleString()} RWF`
   }
 
+  const formatDate = (date: string) =>
+    new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(date))
+
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-7xl">
-        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="sticky top-0 z-20 -mx-4 mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 bg-slate-900/95 px-4 py-4 backdrop-blur">
           <div>
             <h1 className="text-4xl uppercase font-bold mb-2">Membership Management</h1>
-            <hr className="border-white" />
           </div>
           <a
             href={`/${locale}/admin/upgrades`}
@@ -134,10 +130,10 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-500"
           >
-            <span>New Requests</span>
+            <span>Pending Requests</span>
             <span
               aria-label={`${pendingRequestCount} pending requests`}
-              className="inline-flex min-w-6 items-center justify-center rounded-full bg-white/20 px-2 py-0.5 text-sm"
+              className="inline-flex min-w-6 items-center justify-center rounded-full bg-orange-500 px-2 py-0.5 text-sm"
             >
               {pendingRequestCount}
             </span>
@@ -159,10 +155,10 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
           {/* All-Time Revenue */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-300">Total Revenue</h3>
+              <h3 className="text-sm font-semibold text-gray-300">Total Income</h3>
               <TrendingUp className="w-5 h-5 text-emerald-400" />
             </div>
-            <p className="text-3xl font-bold text-white">{formatRevenue(stats.monthlyRevenue)}</p>
+            <p className="text-3xl font-bold text-white">{formatRevenue(stats.totalRevenue)}</p>
           </div>
 
           {/* Pro Users */}
@@ -188,7 +184,7 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
-                  <th className="text-left py-4 px-6 font-semibold">User</th>
+                  <th className="text-left py-4 px-6 font-semibold">Names</th>
                   <th className="text-left py-4 px-6 font-semibold">Tier</th>
                   <th className="text-left py-4 px-6 font-semibold">Status</th>
                   <th className="text-left py-4 px-6 font-semibold">Start Date</th>
@@ -220,10 +216,10 @@ export default function SubscriptionManagementPage({ params }: SubscriptionManag
                         </span>
                       </td>
                       <td className="py-4 px-6 text-gray-400">
-                        {new Date(sub.start_date).toLocaleDateString()}
+                        {formatDate(sub.start_date)}
                       </td>
                       <td className="py-4 px-6 text-gray-400">
-                        {sub.end_date ? new Date(sub.end_date).toLocaleDateString() : '∞ Ongoing'}
+                        {sub.end_date ? formatDate(sub.end_date) : '∞ Ongoing'}
                       </td>
                     </tr>
                   ))

@@ -121,7 +121,7 @@ export default function TaskManagementPage({ params }: TaskManagementProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="mb-8">
           <div className="flex justify-between items-start mb-4">
@@ -131,6 +131,8 @@ export default function TaskManagementPage({ params }: TaskManagementProps) {
             </div>
             <Link
               href={`/${locale}/admin/tasks/new`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="hidden md:flex px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-medium items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -166,6 +168,8 @@ export default function TaskManagementPage({ params }: TaskManagementProps) {
 
           <Link
             href={`/${locale}/admin/tasks/new`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="md:hidden mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-medium flex items-center justify-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -173,128 +177,116 @@ export default function TaskManagementPage({ params }: TaskManagementProps) {
           </Link>
         </div>
 
-        {/* Tasks Grid */}
+        {/* Tasks Table */}
         <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-          <div className="p-6">
-            {tasks.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {tasks.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-1200px text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/5 text-left">
+                    <th scope="col" className="px-4 py-3 font-semibold">Task</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Category</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Reward</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Completions</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Budget</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Status</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {tasks.map((task: any) => {
                   const totalBudget = Number(task.total_budget || 0)
-                  const remainingBudget = Number(task.remaining_budget || 0)
-                  const spent = totalBudget - remainingBudget
-                  const progress = (spent / Math.max(totalBudget, 1)) * 100
 
                   return (
-                    <article
-                      key={task.id}
-                      className="rounded-xl border border-white/10 bg-slate-900/80 p-4 hover:border-white/20 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-white truncate">{task.title}</h3>
-                          <span className="text-xs text-gray-400 block">
-                            {(task.description || '').length > 80
-                              ? `${task.description.substring(0, 80)}...`
-                              : task.description || 'No description'}
-                          </span>
-                        </div>
-                        <span className="shrink-0 px-2 py-1 bg-purple-900/40 text-purple-400 rounded text-xs font-semibold">
+                    <tr key={task.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
+                      <td className="px-4 py-3">
+                        <p className="max-w-32 truncate font-semibold text-white" title={task.title}>
+                          {task.title}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded bg-purple-900/40 px-2 py-1 text-xs font-semibold text-purple-400">
                           {(task.category || '').toUpperCase()}
                         </span>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
-                        <div className="rounded-lg bg-white/5 p-3">
-                          <span className="text-xs text-gray-400 mb-1 block">Base Reward</span>
-                          <p className="text-white font-semibold">{formatRwfCompact(Number(task.base_reward || 0))}</p>
-                        </div>
-                        <div className="rounded-lg bg-white/5 p-3">
-                          <span className="text-xs text-gray-400 mb-1 block">Completions</span>
-                          <p className="text-white font-semibold">{(task.completion_count || 0).toLocaleString()}</p>
-                        </div>
-                        <div className="rounded-lg bg-white/5 p-3">
-                          <span className="text-xs text-gray-400 mb-1 block">Total Budget</span>
-                          <p className="text-gray-300 font-semibold">{formatRwfCompact(totalBudget)}</p>
-                        </div>
-                      </div>
-
-                      {task.is_upsell && (
-                        <div className="mb-3 px-3 py-2 bg-amber-900/30 border border-amber-500/30 rounded-lg flex items-center gap-2">
-                          <Lock className="w-3 h-3 text-amber-400" />
-                          <p className="text-[4px] text-amber-200">Restricted</p>
-                        </div>
-                      )}
-
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <p className="text-gray-400">Remaining</p>
-                          <p className="text-emerald-400 font-semibold">{formatRwfCompact(remainingBudget)}</p>
-                        </div>
-                        <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-yellow-500 to-red-500 rounded-full"
-                            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        {task.is_active ? (
-                          <span className="px-2 py-1 bg-green-900/40 text-green-400 rounded text-xs font-semibold">
-                            Active
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-white">
+                        {formatRwfCompact(Number(task.base_reward || 0))}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        {(task.completion_count || 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-gray-300">
+                        {formatRwfCompact(totalBudget)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col items-start gap-1.5">
+                          <span
+                            className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${
+                              task.is_active
+                                ? 'bg-green-900/40 text-green-400'
+                                : 'bg-gray-900/40 text-gray-400'
+                            }`}
+                          >
+                            {task.is_active ? 'Active' : 'Inactive'}
                           </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-gray-900/40 text-gray-400 rounded text-xs font-semibold">
-                            Inactive
-                          </span>
-                        )}
+                          {task.is_upsell && (
+                            <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-900/30 px-2 py-1 text-xs font-semibold text-amber-200">
+                              <Lock className="h-3 w-3 text-amber-400" />
+                              Restricted
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex min-w-max flex-wrap gap-1.5">
+                          <button
+                            onClick={() => handleToggleUpsell(task.id, task.is_upsell)}
+                            disabled={actionLoading === task.id}
+                            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                              task.is_upsell
+                                ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                                : 'bg-slate-700 hover:bg-slate-600 text-gray-300'
+                            }`}
+                            title={task.is_upsell ? 'Remove restriction' : 'Restrict task (Upsell)'}
+                          >
+                            {task.is_upsell ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                            {task.is_upsell ? 'Unlock' : 'Restrict'}
+                          </button>
 
-                        <button
-                          onClick={() => handleToggleUpsell(task.id, task.is_upsell)}
-                          disabled={actionLoading === task.id}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50 ${
-                            task.is_upsell
-                              ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                              : 'bg-slate-700 hover:bg-slate-600 text-gray-300'
-                          }`}
-                          title={task.is_upsell ? 'Remove restriction' : 'Restrict task (Upsell)'}
-                        >
-                          {task.is_upsell ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                          {task.is_upsell ? 'Unlock' : 'Restrict'}
-                        </button>
+                          <button
+                            onClick={() => setDeletingTaskId(task.id)}
+                            disabled={actionLoading === task.id}
+                            className="inline-flex items-center gap-1.5 rounded border border-red-500/20 bg-red-900/20 px-2 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+                            title="Delete task"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
 
-                        <button
-                          onClick={() => setDeletingTaskId(task.id)}
-                          disabled={actionLoading === task.id}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-500/20"
-                          title="Delete task"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
-
-                        <button
-                          onClick={() => handleToggleActive(task.id, task.is_active)}
-                          disabled={actionLoading === task.id}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors disabled:opacity-50 ${
-                            task.is_active
-                              ? 'bg-red-600 hover:bg-red-500 text-white'
-                              : 'bg-gray-600 hover:bg-gray-500'
-                          }`}
-                          title={task.is_active ? 'Deactivate task' : 'Activate task'}
-                        >
-                          {task.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          {task.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    </article>
+                          <button
+                            onClick={() => handleToggleActive(task.id, task.is_active)}
+                            disabled={actionLoading === task.id}
+                            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+                              task.is_active
+                                ? 'bg-red-600 hover:bg-red-500 text-white'
+                                : 'bg-gray-600 hover:bg-gray-500'
+                            }`}
+                            title={task.is_active ? 'Deactivate task' : 'Activate task'}
+                          >
+                            {task.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            {task.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   )
                 })}
-              </div>
+                </tbody>
+              </table>
+            </div>
             ) : (
               <div className="py-8 text-center text-gray-400">No tasks found</div>
             )}
-          </div>
 
           {/* Pagination */}
           <div className="flex items-center justify-between p-6 border-t border-white/10">

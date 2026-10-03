@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useAdminRoute } from '@/lib/hooks'
-import { getAllUsers, toggleUserSuspension, verifyUser, logFraud, resetUserBalanceToHalf } from '@/lib/admin'
+import { getAllUsers, toggleUserSuspension, logFraud, resetUserBalanceToHalf } from '@/lib/admin'
 import { getCurrentUser } from '@/lib/auth'
+import { supabase } from '@/lib/supabaseClient'
 import AdminLoading from '@/components/admin/AdminPageLoading'
-import { Search, Shield, Ban, CheckCircle } from 'lucide-react'
+import { Search, Shield, Ban, RotateCcw } from 'lucide-react'
 
 interface UserManagementProps {
   params: Promise<{ locale: string }>
@@ -19,7 +20,9 @@ export default function UserManagementPage(_: UserManagementProps) {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
-  const [filterVerified, setFilterVerified] = useState<string>('')
+  const [filterStatus, setFilterStatus] = useState<string>('')
+  const [filterTier, setFilterTier] = useState<string>('')
+  const [sortUsers, setSortUsers] = useState<'balance_desc' | 'newest' | 'oldest'>('newest')
   const [actionLoading, setActionLoading] = useState<string>('')
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [resetModal, setResetModal] = useState<{
@@ -53,11 +56,34 @@ export default function UserManagementPage(_: UserManagementProps) {
         if (currentUser) setAdminId(currentUser.id)
 
         const { users: fetchedUsers, total: totalCount } = await getAllUsers(50, page * 50, {
-          is_verified: filterVerified === '' ? undefined : filterVerified === 'true',
-          is_suspended: undefined,
+          is_suspended: filterStatus === 'suspended' ? true : undefined,
+          is_flagged: filterStatus === 'flagged' ? true : undefined,
+          tier: filterTier || undefined,
+          sort: sortUsers,
         })
 
-        let filteredUsers = fetchedUsers
+        const userIds = fetchedUsers.map((user: any) => user.id)
+        const { data: purchases, error: purchasesError } = userIds.length
+          ? await supabase
+              .from('product_purchase_requests')
+              .select('user_id, product_name')
+              .in('user_id', userIds)
+              .eq('status', 'approved')
+          : { data: [], error: null }
+
+        if (purchasesError) throw purchasesError
+
+        const productsByUser = new Map<string, Map<string, number>>()
+        for (const purchase of purchases || []) {
+          const products = productsByUser.get(purchase.user_id) || new Map<string, number>()
+          products.set(purchase.product_name, (products.get(purchase.product_name) || 0) + 1)
+          productsByUser.set(purchase.user_id, products)
+        }
+
+        let filteredUsers = fetchedUsers.map((user: any) => ({
+          ...user,
+          purchasedProducts: Array.from(productsByUser.get(user.id) || [], ([name, count]) => ({ name, count })),
+        }))
         if (search.trim()) {
           const query = search.toLowerCase()
           filteredUsers = fetchedUsers.filter(
@@ -77,7 +103,7 @@ export default function UserManagementPage(_: UserManagementProps) {
     }
 
     loadUsers()
-  }, [isProtected, page, filterVerified, search])
+  }, [isProtected, page, filterStatus, filterTier, search, sortUsers])
 
   const handleSuspend = async (userId: string, shouldSuspend: boolean) => {
     setActionLoading(userId)
@@ -86,18 +112,6 @@ export default function UserManagementPage(_: UserManagementProps) {
       setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_suspended: shouldSuspend } : u)))
     } catch (error) {
       console.error('Error suspending user:', error)
-    } finally {
-      setActionLoading('')
-    }
-  }
-
-  const handleVerify = async (userId: string) => {
-    setActionLoading(userId)
-    try {
-      await verifyUser(userId, adminId)
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, is_verified: true } : u)))
-    } catch (error) {
-      console.error('Error verifying user:', error)
     } finally {
       setActionLoading('')
     }
@@ -160,7 +174,7 @@ export default function UserManagementPage(_: UserManagementProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
+    <div className="min-h-screen bg-linear-to-b from-slate-900 via-emerald-950 to-slate-900 text-white py-8">
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">User Management</h1>
@@ -192,13 +206,43 @@ export default function UserManagementPage(_: UserManagementProps) {
             </div>
 
             <select
-              value={filterVerified}
-              onChange={(e) => setFilterVerified(e.target.value)}
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value)
+                setPage(0)
+              }}
               className="px-4 py-2 bg-slate-900 border border-white/20 rounded-lg text-white"
             >
-              <option value="">All Verification States</option>
-              <option value="true">Verified Only</option>
-              <option value="false">Unverified Only</option>
+              <option value="">All Accounts</option>
+              <option value="suspended">Suspended</option>
+              <option value="flagged">Flagged</option>
+            </select>
+
+            <select
+              value={filterTier}
+              onChange={(e) => {
+                setFilterTier(e.target.value)
+                setPage(0)
+              }}
+              className="px-4 py-2 bg-slate-900 border border-white/20 rounded-lg text-white"
+            >
+              <option value="">All Membership</option>
+              <option value="free">Free</option>
+              <option value="pro">Pro</option>
+              <option value="pro_max">Pro Max</option>
+            </select>
+
+            <select
+              value={sortUsers}
+              onChange={(e) => {
+                setSortUsers(e.target.value as 'balance_desc' | 'newest' | 'oldest')
+                setPage(0)
+              }}
+              className="px-4 py-2 bg-slate-900 border border-white/20 rounded-lg text-white"
+            >
+              <option value="balance_desc">Highest Balance</option>
+              <option value="newest">Newest Accounts</option>
+              <option value="oldest">Oldest Accounts</option>
             </select>
           </div>
         </div>
@@ -207,13 +251,13 @@ export default function UserManagementPage(_: UserManagementProps) {
         <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
           {users.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] text-sm">
+              <table className="w-full min-w-1000px text-sm">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/5 text-left">
-                    <th scope="col" className="px-4 py-3 font-semibold">User</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Name</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Phone</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Tier</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Account Status</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Membership</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">Products</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Balance</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Actions</th>
                   </tr>
@@ -221,7 +265,7 @@ export default function UserManagementPage(_: UserManagementProps) {
                 <tbody>
                   {users.map((user: any) => (
                     <tr key={user.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                      <td className="px-4 py-3 font-semibold text-white">
+                      <td className="max-w-40 truncate px-4 py-3 font-semibold text-white" title={user.full_name || 'Unknown User'}>
                         {user.full_name || 'Unknown User'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-300">
@@ -233,77 +277,67 @@ export default function UserManagementPage(_: UserManagementProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          <span
-                            className={`inline-flex rounded px-2 py-1 text-xs font-semibold ${
-                              user.is_verified
-                                ? 'bg-green-900/40 text-green-400'
-                                : 'bg-yellow-900/40 text-yellow-400'
-                            }`}
-                          >
-                            {user.is_verified ? 'Verified' : 'Unverified'}
-                          </span>
-                          {user.is_suspended && (
-                            <span className="inline-flex rounded bg-red-900/40 px-2 py-1 text-xs font-semibold text-red-400">
-                              Suspended
-                            </span>
-                          )}
-                        </div>
+                        {user.purchasedProducts.length > 0 ? (
+                          <div className="flex min-w-40 flex-wrap gap-1">
+                            {user.purchasedProducts.map((product: { name: string; count: number }) => (
+                              <span
+                                key={product.name}
+                                className="inline-flex rounded bg-emerald-900/40 px-2 py-1 text-xs font-medium text-emerald-300"
+                                title={`${product.name}${product.count > 1 ? ` x${product.count}` : ''}`}
+                              >
+                                {product.name}{product.count > 1 ? ` x${product.count}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">None</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap font-semibold text-emerald-400">
                         {formatRwfCompact(user.balance)}
                       </td>
                       <td className="px-4 py-3">
-                        {user.role === 'admin' ? (
-                          <span className="inline-flex whitespace-nowrap rounded border border-purple-500/30 bg-purple-900/40 px-2 py-1 text-xs font-semibold text-purple-400">
-                            Admin Access
-                          </span>
-                        ) : (
-                          <div className="flex min-w-max flex-wrap gap-1.5">
-                            {!user.is_verified && (
+                        <div className="flex min-w-max flex-wrap gap-1.5">
+                          {user.role === 'admin' ? (
+                            <span className="inline-flex whitespace-nowrap rounded border border-purple-500/30 bg-purple-900/40 px-2 py-1 text-xs font-semibold text-purple-400">
+                              Admin Access
+                            </span>
+                          ) : (
+                            <>
                               <button
-                                onClick={() => handleVerify(user.id)}
+                                onClick={() => handleSuspend(user.id, !user.is_suspended)}
                                 disabled={actionLoading === user.id}
-                                className="inline-flex items-center gap-1.5 rounded bg-green-600 px-2 py-1 text-xs font-medium transition-colors hover:bg-green-500 disabled:opacity-50"
-                                title="Verify user"
+                                className={`inline-flex h-8 w-8 items-center justify-center rounded transition-colors disabled:opacity-50 ${
+                                  user.is_suspended ? 'bg-gray-600 hover:bg-gray-500' : 'bg-orange-600 hover:bg-orange-500'
+                                }`}
+                                title={user.is_suspended ? 'Unsuspend user' : 'Suspend user'}
+                                aria-label={user.is_suspended ? 'Unsuspend user' : 'Suspend user'}
                               >
-                                <CheckCircle className="h-3.5 w-3.5" />
-                                Verify
+                                <Ban className="h-3.5 w-3.5" />
                               </button>
-                            )}
 
-                            <button
-                              onClick={() => handleSuspend(user.id, !user.is_suspended)}
-                              disabled={actionLoading === user.id}
-                              className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-                                user.is_suspended ? 'bg-gray-600 hover:bg-gray-500' : 'bg-orange-600 hover:bg-orange-500'
-                              }`}
-                              title={user.is_suspended ? 'Unsuspend user' : 'Suspend user'}
-                            >
-                              <Ban className="h-3.5 w-3.5" />
-                              {user.is_suspended ? 'Unsuspend' : 'Suspend'}
-                            </button>
+                              <button
+                                onClick={() => handleFlagFraud(user.id, 'manual_admin_flag')}
+                                disabled={actionLoading === user.id}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded bg-emerald-600 transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                                title="Flag as fraud"
+                                aria-label="Flag as fraud"
+                              >
+                                <Shield className="h-3.5 w-3.5" />
+                              </button>
 
-                            <button
-                              onClick={() => handleFlagFraud(user.id, 'manual_admin_flag')}
-                              disabled={actionLoading === user.id}
-                              className="inline-flex items-center gap-1.5 rounded bg-emerald-600 px-2 py-1 text-xs font-medium transition-colors hover:bg-emerald-500 disabled:opacity-50"
-                              title="Flag as fraud"
-                            >
-                              <Shield className="h-3.5 w-3.5" />
-                              Flag Fraud
-                            </button>
-
-                            <button
-                              onClick={() => handleResetBalance(user)}
-                              disabled={actionLoading === user.id}
-                              className="inline-flex items-center gap-1.5 rounded bg-red-700 px-2 py-1 text-xs font-medium transition-colors hover:bg-red-600 disabled:opacity-50"
-                              title="Reset user balance to half"
-                            >
-                              Reset Balance
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                onClick={() => handleResetBalance(user)}
+                                disabled={actionLoading === user.id}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded bg-red-700 transition-colors hover:bg-red-600 disabled:opacity-50"
+                                title="Reset user balance to half"
+                                aria-label="Reset user balance to half"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -115,14 +115,31 @@ export async function getDashboardStats() {
 export async function getAllUsers(
   limit: number = 50,
   offset: number = 0,
-  filter?: { role?: string; is_suspended?: boolean; is_verified?: boolean }
+  filter?: {
+    role?: string
+    is_suspended?: boolean
+    is_verified?: boolean
+    tier?: string
+    is_flagged?: boolean
+    sort?: 'balance_desc' | 'newest' | 'oldest'
+  }
 ) {
   try {
-    let query = supabase.from('users').select('*', { count: 'exact' }).range(offset, offset + limit - 1)
+    const select = filter?.is_flagged === undefined ? '*' : '*, fraud_logs!left(id)'
+    let query = supabase.from('users').select(select, { count: 'exact' })
 
     if (filter?.role) query = query.eq('role', filter.role)
     if (filter?.is_suspended !== undefined) query = query.eq('is_suspended', filter.is_suspended)
     if (filter?.is_verified !== undefined) query = query.eq('is_verified', filter.is_verified)
+    if (filter?.tier) query = query.eq('tier', filter.tier)
+    if (filter?.is_flagged === true) query = query.not('fraud_logs.id', 'is', null)
+    if (filter?.is_flagged === false) query = query.is('fraud_logs.id', null)
+
+    if (filter?.sort === 'balance_desc') query = query.order('balance', { ascending: false })
+    if (filter?.sort === 'newest') query = query.order('created_at', { ascending: false })
+    if (filter?.sort === 'oldest') query = query.order('created_at', { ascending: true })
+
+    query = query.range(offset, offset + limit - 1)
 
     const { data, error, count } = await query
 
@@ -468,13 +485,21 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
 /**
  * Get all subscriptions
  */
-export async function getAllSubscriptions(limit: number = 50, offset: number = 0) {
+export async function getAllSubscriptions(
+  limit: number = 50,
+  offset: number = 0,
+  filter?: { excludeFree?: boolean }
+) {
   try {
-    const { data, error, count } = await supabase
+    const tiersRelationship = filter?.excludeFree ? 'tiers!inner(name)' : 'tiers(name)'
+    let query = supabase
       .from('subscriptions')
-      .select('*, users(email, full_name), tiers(name)', { count: 'exact' })
+      .select(`*, users(email, full_name), ${tiersRelationship}`, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+
+    if (filter?.excludeFree) query = query.neq('tiers.name', 'free')
+
+    const { data, error, count } = await query.range(offset, offset + limit - 1)
 
     if (error) throw error
 
