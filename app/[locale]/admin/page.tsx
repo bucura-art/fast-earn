@@ -276,10 +276,7 @@ export default function AdminDashboard({ params }: AdminDashboardProps) {
           </div>
         </div>
       </div>
-      <ReferralLeaderboard
-        isOpen={showLeaderboardModal}
-        onClose={() => setShowLeaderboardModal(false)}
-      />
+      <ReferralLeaderboard />
     </div>
   )
 }

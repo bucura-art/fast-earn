@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Copy, Users, Trophy, Gift, CalendarCheck, CheckSquare, PlayCircle, CheckCircle2, Circle } from 'lucide-react'
+import { Eye, EyeOff, Copy, Users, Gift, CalendarCheck, CheckSquare, PlayCircle, CheckCircle2, Circle, Package } from 'lucide-react'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
 import { getTodayTaskCount } from '@/lib/tasks'
@@ -12,7 +12,7 @@ import CopyButton from '@/components/general/CopyButton'
 import LanguageSwitcher from '@/components/general/LanguageSwitcher'
 import PageLoading from '@/components/general/PageLoading'
 import SiteHeader from '@/components/general/SiteHeader'
-import ReferralLeaderboard from '@/components/dashboard/ReferralLeaderboard'
+import EarnersLeaderboard from '@/components/dashboard/EarnersLeaderboard'
 import { generateReferralLink } from '@/lib/referral'
 import supabase from '@/lib/supabaseClient'
 import { getCheckInStatus } from '@/lib/checkIn'
@@ -27,6 +27,7 @@ const incomeSources = [
   { key: 'check_in_income', label: 'Check-in', icon: CalendarCheck, color: 'text-cyan-400' },
   { key: 'task_income', label: 'Tasks', icon: CheckSquare, color: 'text-emerald-400' },
   { key: 'video_income', label: 'Videos', icon: PlayCircle, color: 'text-rose-400' },
+  { key: 'products_income', label: 'Products', icon: Package, color: 'text-indigo-300' },
 ] as const
 
 interface IncomeBreakdown {
@@ -36,6 +37,12 @@ interface IncomeBreakdown {
   check_in_income: number
   task_income: number
   video_income: number
+  products_income: number
+}
+
+interface TodayProductIncome {
+  amount: number
+  status: 'credited' | 'pending' | 'no_product'
 }
 
 const emptyIncomeBreakdown: IncomeBreakdown = {
@@ -45,6 +52,7 @@ const emptyIncomeBreakdown: IncomeBreakdown = {
   check_in_income: 0,
   task_income: 0,
   video_income: 0,
+  products_income: 0,
 }
 
 const todayVideoCount = 0
@@ -57,11 +65,11 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   const [incomeBreakdown, setIncomeBreakdown] = useState<IncomeBreakdown | null>(null)
   const [hideBalance, setHideBalance] = useState(false)
   const [showLanguageSwitcher, setShowLanguageSwitcher] = useState(false)
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [loading, setLoading] = useState(true)
   const [dailyLimit, setDailyLimit] = useState(5)
   const [todayCount, setTodayCount] = useState(0)
   const [checkedInToday, setCheckedInToday] = useState<boolean | null>(null)
+  const [todayProductIncome, setTodayProductIncome] = useState<TodayProductIncome | null>(null)
 
   useEffect(() => {
     if (!isProtected) return
@@ -105,6 +113,26 @@ export default function DashboardPage({ params }: DashboardPageProps) {
             const incomeValues = Array.isArray(incomeResult.data) ? incomeResult.data[0] : incomeResult.data
             setIncomeBreakdown(incomeValues || emptyIncomeBreakdown)
           }
+
+          try {
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+            if (sessionError) throw sessionError
+            const accessToken = sessionData.session?.access_token
+            if (!accessToken) throw new Error('Your session has expired. Please sign in again.')
+
+            const response = await fetch('/api/my-product-purchases?summary=today', {
+              headers: { Authorization: `Bearer ${accessToken}` },
+              cache: 'no-store',
+            })
+            const result = (await response.json()) as {
+              todayIncome?: TodayProductIncome
+              error?: string
+            }
+            if (!response.ok) throw new Error(result.error || "Unable to load today's product income.")
+            if (result.todayIncome) setTodayProductIncome(result.todayIncome)
+          } catch (error) {
+            console.error('Error loading today product income:', error)
+          }
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)
@@ -141,8 +169,8 @@ export default function DashboardPage({ params }: DashboardPageProps) {
         </div>
 
 
-        {/* Income */}
-        <div className="mb-8">
+        <div className="grid items-start gap-6 lg:grid-cols-3">
+          {/* Income */}
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10 relative">
             <div className="flex items-start justify-between">
               <div>
@@ -168,7 +196,7 @@ export default function DashboardPage({ params }: DashboardPageProps) {
 
             <div className="mt-6 border-t border-white/10 pt-5">
               <h2 className="mb-4 text-sm font-semibold tracking-wider text-gray-400">Income sources</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 2xl:grid-cols-2">
                 {incomeSources.map(({ key, label, icon: Icon, color }) => (
                   <div key={label} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -188,25 +216,16 @@ export default function DashboardPage({ params }: DashboardPageProps) {
             </div>
           </div>
 
-        </div>
-
         <section aria-labelledby="quick-actions-heading">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
             <h2 id="quick-actions-heading" className="mb-4 text-sm font-semibold tracking-wider text-gray-400">Today Actions</h2>
-            <div className="grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+            <div className="grid gap-4 border-t border-white/10 pt-5 2xl:grid-cols-2">
               <div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Users className="text-purple-400" size={18} />
                   <span className="text-sm text-gray-300">Refer</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setShowLeaderboard(true)}
-                    className="text-blue-300 hover:text-white transition-colors"
-                    aria-label="Open leaderboard"
-                  >
-                    <Trophy size={24} />
-                  </button>
                   <CopyButton
                     textToCopy={user ? generateReferralLink(user.id) : ''}
                     className="text-gray-300 hover:text-white transition-colors"
@@ -246,9 +265,43 @@ export default function DashboardPage({ params }: DashboardPageProps) {
                   <span>{checkedInToday === null ? 'Unavailable' : checkedInToday ? 'Done' : 'Not done'}</span>
                 </div>
               </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Package className="text-indigo-300" size={18} />
+                  <span className="text-sm text-gray-300">Today income</span>
+                </div>
+                <div className={`flex items-center gap-2 text-sm font-semibold ${
+                  todayProductIncome?.status === 'credited'
+                    ? 'text-emerald-400'
+                    : todayProductIncome?.status === 'pending'
+                      ? 'text-amber-300'
+                      : 'text-gray-400'
+                }`}>
+                  <span>
+                    {todayProductIncome
+                      ? todayProductIncome.status === 'no_product'
+                        ? 'No product'
+                        : `${Number(todayProductIncome.amount).toLocaleString()} RWF`
+                      : 'Unavailable'}
+                  </span>
+                  {todayProductIncome && (
+                    <span>
+                      {todayProductIncome.status === 'credited'
+                        ? 'Credited'
+                        : todayProductIncome.status === 'pending'
+                          ? 'Pending'
+                          : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </section>
+
+          <EarnersLeaderboard />
+        </div>
 
       </div>
 
@@ -267,13 +320,6 @@ export default function DashboardPage({ params }: DashboardPageProps) {
           </div>
         </div>
       )}
-
-      {/* Referral Leaderboard Modal */}
-      <ReferralLeaderboard
-        isOpen={showLeaderboard}
-        onClose={() => setShowLeaderboard(false)}
-        currentUserId={user?.id}
-      />
     </div>
   )
 }

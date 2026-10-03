@@ -914,6 +914,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Aggregate a user's lifetime credited income by earning source.
+DROP FUNCTION IF EXISTS public.get_user_income_breakdown();
 CREATE OR REPLACE FUNCTION public.get_user_income_breakdown()
 RETURNS TABLE (
     total_income NUMERIC,
@@ -921,7 +922,8 @@ RETURNS TABLE (
     referral_income NUMERIC,
     check_in_income NUMERIC,
     task_income NUMERIC,
-    video_income NUMERIC
+    video_income NUMERIC,
+    products_income NUMERIC
 )
 LANGUAGE sql
 STABLE
@@ -942,7 +944,8 @@ AS $$
             WHERE wt.reference_type = 'task_completion'
               AND tc.id IS NOT NULL
               AND t.category = 'video'
-        ), 0)
+        ), 0),
+        COALESCE(SUM(wt.amount) FILTER (WHERE wt.reference_type = 'product_earning'), 0)
     FROM public.wallet_transactions AS wt
     LEFT JOIN public.task_completions AS tc
         ON wt.reference_type = 'task_completion'

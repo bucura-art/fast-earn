@@ -48,6 +48,69 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    if (request.nextUrl.searchParams.get('summary') === 'today') {
+      const today = new Date().toISOString().slice(0, 10)
+      const todayStart = `${today}T00:00:00.000Z`
+      const todayEnd = `${today}T23:59:59.999Z`
+      let activeProductCount = 0
+      let expectedAmount = 0
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const { data, error } = await supabaseAdmin
+          .from('product_purchase_requests')
+          .select('daily_income')
+          .eq('user_id', authData.user.id)
+          .eq('status', 'approved')
+          .lte('starts_at', todayEnd)
+          .gte('ends_at', todayStart)
+          .range(offset, offset + PAGE_SIZE - 1)
+
+        if (error) throw error
+
+        const rows = data || []
+        activeProductCount += rows.length
+        expectedAmount += rows.reduce(
+          (total, product) => total + Number(product.daily_income || 0),
+          0
+        )
+        if (rows.length < PAGE_SIZE) break
+      }
+
+      let creditedAmount = 0
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const { data, error } = await supabaseAdmin
+          .from('product_earnings')
+          .select('amount')
+          .eq('user_id', authData.user.id)
+          .eq('earning_date', today)
+          .range(offset, offset + PAGE_SIZE - 1)
+
+        if (error) throw error
+
+        const rows = data || []
+        creditedAmount += rows.reduce(
+          (total, earning) => total + Number(earning.amount || 0),
+          0
+        )
+        if (rows.length < PAGE_SIZE) break
+      }
+
+      const status = activeProductCount === 0
+        ? 'no_product'
+        : creditedAmount > 0
+          ? 'credited'
+          : 'pending'
+
+      return NextResponse.json(
+        {
+          todayIncome: {
+            amount: status === 'pending' ? expectedAmount : creditedAmount,
+            status,
+          },
+        },
+        { headers: { 'Cache-Control': 'private, no-store' } }
+      )
+    }
+
     const purchases: ApprovedPurchase[] = []
 
     for (let offset = 0; ; offset += PAGE_SIZE) {
