@@ -96,6 +96,7 @@ export default function ChatWidget({ initialAction, initialTier, locale = 'en', 
     }
     return (
       <UpgradeChatWidget
+        locale={locale}
         initialTier={initialTier}
         tierPrices={tierPrices}
       />

@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks'
 import { Phone } from 'lucide-react'
 import { supabase } from '@/lib/supabase-client'
+import PaymentAlert from '@/components/support/PaymentAlert'
 
 type UpgradeTier = 'pro' | 'pro_max'
 
 interface UpgradeChatWidgetProps {
+  locale: string
   initialTier?: string
   tierPrices: Record<string, number>
   onSubmitted?: () => void
@@ -34,7 +37,8 @@ function UssdCopy({ code }: { code: string }) {
   )
 }
 
-export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted }: UpgradeChatWidgetProps) {
+export default function UpgradeChatWidget({ locale, initialTier, tierPrices, onSubmitted }: UpgradeChatWidgetProps) {
+  const router = useRouter()
   const { user } = useAuth()
 
   const [selectedTier, setSelectedTier] = useState<UpgradeTier | null>(
@@ -44,6 +48,7 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
   const [expectingPhone, setExpectingPhone] = useState(false)
   const [sending, setSending] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [momoPayCode, setMomoPayCode] = useState<string>('387483')
 
@@ -106,6 +111,7 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
 
       setSubmitted(true)
       setExpectingPhone(false)
+      setShowPaymentAlert(true)
       onSubmitted?.()
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Could not submit the upgrade request.')
@@ -115,6 +121,7 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
   }
 
   return (
+    <>
     <div className="mx-auto w-full max-w-xl rounded-xl border border-white/10 bg-white/5 p-5 text-white">
       {!selectedTier ? (
         <label className="block space-y-2">
@@ -151,12 +158,12 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
           </dl>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-300">Click 👉👉</span>
+            <span className="text-sm text-gray-300">👉👉</span>
             <a
               href={telLink}
               className="flex-1 rounded-lg bg-emerald-500 px-4 py-3 text-center font-bold text-white transition-colors hover:bg-emerald-600"
             >
-              PAY
+              Click here to PAY
             </a>
           </div>
 
@@ -186,18 +193,33 @@ export default function UpgradeChatWidget({ initialTier, tierPrices, onSubmitted
           {errorMessage && <p role="alert" className="text-sm text-red-300">{errorMessage}</p>}
           <button
             type="button"
-            onClick={() => void handlePaid()}
-            disabled={sending || submitted}
+            onClick={() => {
+              if (submitted) {
+                router.push(`/${locale}/dashboard`)
+                return
+              }
+              void handlePaid()
+            }}
+            disabled={sending}
             className={`w-full rounded-lg border px-4 py-3 font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               phone.trim()
                 ? 'border-blue-500 bg-blue-600 hover:bg-blue-500'
                 : 'border-white/20 hover:bg-white/10'
             }`}
           >
-            {sending ? 'Submitting...' : 'I have paid'}
+            {sending ? 'Submitting...' : submitted ? 'Continue' : 'I have paid'}
           </button>
         </div>
       )}
     </div>
+    {showPaymentAlert && (
+      <PaymentAlert
+        onContinue={() => {
+          setShowPaymentAlert(false)
+          router.push(`/${locale}/dashboard`)
+        }}
+      />
+    )}
+    </>
   )
 }

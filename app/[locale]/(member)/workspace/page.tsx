@@ -6,11 +6,21 @@ import { useRouter } from 'next/navigation'
 import SiteHeader from '@/components/general/SiteHeader'
 import { useProtectedRoute } from '@/lib/hooks'
 import { getCurrentUser } from '@/lib/auth'
-import { getUserSubscription, getTierNameFromSubscription } from '@/lib/subscription'
+import { getDailyTaskLimit, getUserSubscription, getTierNameFromSubscription } from '@/lib/subscription'
 import { UserTier } from '@/lib/types'
 import supabase from '@/lib/supabaseClient'
 import { getCheckInStatus, submitCheckIn } from '@/lib/checkIn'
-import { AlertCircle, CheckCircle2, Clock3, X } from 'lucide-react'
+import { getTodayTaskCount } from '@/lib/tasks'
+import { generateReferralLink } from '@/lib/referral'
+import CopyButton from '@/components/general/CopyButton'
+import { AlertCircle, CalendarCheck, CheckCircle2, CheckSquare, Circle, Clock3, Copy, Package, PlayCircle, Users, X } from 'lucide-react'
+
+interface TodayProductIncome {
+	amount: number
+	status: 'credited' | 'pending' | 'no_product'
+}
+
+const todayVideoCount = 0
 
 interface WorkspacePageProps {
 	params: Promise<{ locale: string }>
@@ -24,7 +34,10 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 	const [tierError, setTierError] = useState(false)
 	const [tierLoading, setTierLoading] = useState(true)
 	const [userId, setUserId] = useState<string | null>(null)
-	const [checkedInToday, setCheckedInToday] = useState(false)
+	const [dailyLimit, setDailyLimit] = useState(5)
+	const [todayCount, setTodayCount] = useState(0)
+	const [checkedInToday, setCheckedInToday] = useState<boolean | null>(null)
+	const [todayProductIncome, setTodayProductIncome] = useState<TodayProductIncome | null>(null)
 	const [checkingIn, setCheckingIn] = useState(false)
 	const [notification, setNotification] = useState<{
 		type: 'success' | 'error' | 'info'
@@ -52,6 +65,8 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 					})
 				}
 
+				setTodayCount(await getTodayTaskCount(user.id))
+
 				const [subscription, tierData] = await Promise.all([
 					getUserSubscription(user.id),
 					user.tier_id
@@ -64,6 +79,27 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 					throw new Error(`Unknown account tier: ${tierName}`)
 				}
 				setTier(tierName)
+				setDailyLimit(getDailyTaskLimit(tierName))
+
+				try {
+					const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+					if (sessionError) throw sessionError
+					const accessToken = sessionData.session?.access_token
+					if (!accessToken) throw new Error('Your session has expired. Please sign in again.')
+
+					const response = await fetch('/api/my-product-purchases?summary=today', {
+						headers: { Authorization: `Bearer ${accessToken}` },
+						cache: 'no-store',
+					})
+					const result = (await response.json()) as {
+						todayIncome?: TodayProductIncome
+						error?: string
+					}
+					if (!response.ok) throw new Error(result.error || "Unable to load today's product income.")
+					if (result.todayIncome) setTodayProductIncome(result.todayIncome)
+				} catch (error) {
+					console.error('Error loading today product income:', error)
+				}
 			} catch (error) {
 				console.error('Error loading workspace tier:', error)
 				setTierError(true)
@@ -234,6 +270,96 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
 						</button>
 					</div>
 				)}
+
+				<section aria-labelledby="quick-actions-heading" className="mx-auto mt-8 max-w-4xl">
+					<div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+						<h2 id="quick-actions-heading" className="mb-4 text-sm font-semibold tracking-wider text-gray-400">
+							Today Actions
+						</h2>
+						<div className="grid gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
+							<div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+								<div className="flex items-center gap-2">
+									<Users className="text-purple-400" size={18} />
+									<span className="text-sm text-gray-300">Refer</span>
+								</div>
+								<CopyButton
+									textToCopy={userId ? generateReferralLink(userId) : ''}
+									className="text-gray-300 transition-colors hover:text-white"
+								>
+									<Copy size={20} />
+								</CopyButton>
+							</div>
+
+							<div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+								<div className="flex items-center gap-2">
+									<CheckSquare className="text-emerald-400" size={18} />
+									<span className="text-sm text-gray-300">Today Tasks</span>
+								</div>
+								<span className={`text-sm font-semibold ${todayCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>
+									{todayCount} / {dailyLimit}
+								</span>
+							</div>
+
+							<div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+								<div className="flex items-center gap-2">
+									<PlayCircle className="text-rose-400" size={18} />
+									<span className="text-sm text-gray-300">Today Videos</span>
+								</div>
+								<span className={`text-sm font-semibold ${todayVideoCount >= dailyLimit ? 'text-emerald-400' : 'text-white'}`}>
+									{todayVideoCount} / {dailyLimit}
+								</span>
+							</div>
+
+							<div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+								<div className="flex items-center gap-2">
+									<CalendarCheck className="text-cyan-400" size={18} />
+									<span className="text-sm text-gray-300">Today Check-in</span>
+								</div>
+								<div className={`flex items-center gap-2 text-sm font-semibold ${
+									checkedInToday === null ? 'text-gray-400' : checkedInToday ? 'text-emerald-400' : 'text-amber-300'
+								}`}>
+									{checkedInToday === null
+										? <Circle size={18} />
+										: checkedInToday
+											? <CheckCircle2 size={18} />
+											: <Circle size={18} />}
+									<span>{checkedInToday === null ? 'Unavailable' : checkedInToday ? 'Done' : 'Not done'}</span>
+								</div>
+							</div>
+
+							<div className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3">
+								<div className="flex items-center gap-2">
+									<Package className="text-indigo-300" size={18} />
+									<span className="text-sm text-gray-300">Today income</span>
+								</div>
+								<div className={`flex items-center gap-2 text-sm font-semibold ${
+									todayProductIncome?.status === 'credited'
+										? 'text-emerald-400'
+										: todayProductIncome?.status === 'pending'
+											? 'text-amber-300'
+											: 'text-gray-400'
+								}`}>
+									<span>
+										{todayProductIncome
+											? todayProductIncome.status === 'no_product'
+												? 'No product'
+												: `${Number(todayProductIncome.amount).toLocaleString()} RWF`
+											: 'Unavailable'}
+									</span>
+									{todayProductIncome && (
+										<span>
+											{todayProductIncome.status === 'credited'
+												? 'Credited'
+												: todayProductIncome.status === 'pending'
+													? 'Pending'
+													: ''}
+										</span>
+									)}
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
 			</main>
 		</div>
 	)

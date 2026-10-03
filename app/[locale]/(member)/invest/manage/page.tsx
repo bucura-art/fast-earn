@@ -88,7 +88,7 @@ export default function MyProductsPage({ params }: MyProductsPageProps) {
             href={`/${locale}/invest`}
             className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-500"
           >
-            Products
+            Buy Products
           </Link>
         </header>
 
@@ -100,7 +100,7 @@ export default function MyProductsPage({ params }: MyProductsPageProps) {
           </div>
         ) : products.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-            <h2 className="mb-2 text-xl font-semibold">No products yet</h2>
+            <h2 className="mb-2 text-xl font-semibold">You have no products</h2>
             <Link
               href={`/${locale}/invest`}
               className="inline-flex rounded-lg bg-blue-600 px-5 py-3 font-bold text-white transition-colors hover:bg-blue-500"
@@ -131,11 +131,11 @@ export default function MyProductsPage({ params }: MyProductsPageProps) {
 
                   <dl className="grid gap-4 sm:grid-cols-2">
                     <div className="rounded-xl bg-black/20 p-4">
-                      <dt className="text-sm text-gray-400">Earned so far</dt>
+                      <dt className="text-sm text-gray-400">Earned</dt>
                       <dd className="mt-1 text-xl font-bold text-emerald-300">{formatRwf(product.earned_so_far)}</dd>
                     </div>
                     <div className="rounded-xl bg-black/20 p-4">
-                      <dt className="text-sm text-gray-400">Potential income left</dt>
+                      <dt className="text-sm text-gray-400">Income left</dt>
                       <dd className="mt-1 text-xl font-bold text-white">{formatRwf(product.remaining_income)}</dd>
                     </div>
                     <div>

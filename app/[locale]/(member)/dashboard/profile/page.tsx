@@ -102,7 +102,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
   const handleLogout = async () => {
     try {
       await logout()
-      router.push(`/${locale}`)
+      router.push(`/${locale}/auth?mode=login`)
     } catch (error) {
       console.error('Logout error:', error)
     }
@@ -127,9 +127,6 @@ export default function ProfilePage({ params }: ProfilePageProps) {
       <SiteHeader locale={locale} />
       <main className="py-8">
         <div className="container mx-auto px-4 max-w-6xl">
-        <div className="mb-6">
-          <a href={`/${locale}/dashboard`} className="text-sm text-gray-300 hover:text-white">{'<-'} Back</a>
-        </div>
 
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold">Profile Settings</h1>

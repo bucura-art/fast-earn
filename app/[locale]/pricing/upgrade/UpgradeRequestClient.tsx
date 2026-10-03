@@ -18,7 +18,6 @@ export default function UpgradeRequestClient({ locale }: { locale: string }) {
 
   const [prices, setPrices] = useState<Record<string, number>>({})
   const [pricesLoaded, setPricesLoaded] = useState(false)
-  const [upgradeSubmitted, setUpgradeSubmitted] = useState(false)
 
   useEffect(() => {
     async function fetchPrices() {
@@ -57,27 +56,10 @@ export default function UpgradeRequestClient({ locale }: { locale: string }) {
         </div>
 
         <UpgradeChatWidget
+          locale={locale}
           initialTier={initialTier}
           tierPrices={prices}
-          onSubmitted={() => setUpgradeSubmitted(true)}
         />
-        {upgradeSubmitted && (
-          <div className="mt-4 space-y-3">
-            <div
-              role="status"
-              className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200"
-            >
-              Upgrade request submitted.
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push(`/${locale}/workspace`)}
-              className="w-full rounded-lg border border-blue-500 bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-500"
-            >
-              Continue
-            </button>
-          </div>
-        )}
       </div>
 
     </div>

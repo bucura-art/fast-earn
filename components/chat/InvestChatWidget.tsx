@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Phone } from 'lucide-react'
 import { useAuth } from '@/lib/hooks'
 import supabase from '@/lib/supabaseClient'
 import type { VipProduct } from '@/lib/products'
+import PaymentAlert from '@/components/support/PaymentAlert'
 
 interface InvestChatWidgetProps {
+  locale: string
   product: VipProduct
   onSubmitted?: () => void
 }
@@ -24,12 +27,14 @@ function UssdCopy({ code }: { code: string }) {
   )
 }
 
-export default function InvestChatWidget({ product, onSubmitted }: InvestChatWidgetProps) {
+export default function InvestChatWidget({ locale, product, onSubmitted }: InvestChatWidgetProps) {
+  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [phone, setPhone] = useState('')
   const [expectingPhone, setExpectingPhone] = useState(false)
   const [sending, setSending] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [momoPayCode, setMomoPayCode] = useState('387483')
 
@@ -98,6 +103,7 @@ export default function InvestChatWidget({ product, onSubmitted }: InvestChatWid
 
       setSubmitted(true)
       setExpectingPhone(false)
+      setShowPaymentAlert(true)
       onSubmitted?.()
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Could not submit the purchase request.')
@@ -107,6 +113,7 @@ export default function InvestChatWidget({ product, onSubmitted }: InvestChatWid
   }
 
   return (
+    <>
     <div className="mx-auto w-full max-w-xl rounded-xl border border-white/10 bg-white/5 p-5 text-white">
       <h2 className="mb-4 text-xl font-bold">{product.name}</h2>
       <dl className="space-y-3 text-sm">
@@ -129,12 +136,12 @@ export default function InvestChatWidget({ product, onSubmitted }: InvestChatWid
       </dl>
 
       <div className="mt-5 flex items-center gap-3">
-        <span className="text-sm text-gray-300">Click 👉👉</span>
+        <span className="text-sm text-gray-300">👉👉</span>
         <a
           href={`tel:${ussd.replace(/#/g, '%23')}`}
           className="flex-1 rounded-lg bg-emerald-500 px-4 py-3 text-center font-bold text-white transition-colors hover:bg-emerald-600"
         >
-          PAY
+          Click here to PAY
         </a>
       </div>
 
@@ -166,12 +173,27 @@ export default function InvestChatWidget({ product, onSubmitted }: InvestChatWid
       {errorMessage && <p role="alert" className="mt-2 text-sm text-red-300">{errorMessage}</p>}
       <button
         type="button"
-        onClick={() => void handlePaid()}
-        disabled={authLoading || sending || submitted}
+        onClick={() => {
+          if (submitted) {
+            router.push(`/${locale}/dashboard`)
+            return
+          }
+          void handlePaid()
+        }}
+        disabled={authLoading || sending}
         className="mt-2 w-full rounded-lg border border-blue-500 bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {sending ? 'Submitting...' : submitted ? 'Request submitted' : 'I have paid'}
+        {sending ? 'Submitting...' : submitted ? 'Continue' : 'I have paid'}
       </button>
     </div>
+    {showPaymentAlert && (
+      <PaymentAlert
+        onContinue={() => {
+          setShowPaymentAlert(false)
+          router.push(`/${locale}/dashboard`)
+        }}
+      />
+    )}
+    </>
   )
 }
